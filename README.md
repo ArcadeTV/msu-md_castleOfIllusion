@@ -12,7 +12,7 @@ Romhack for Sega Genesis/Mega Drive that adds CD audio to the game by using krik
 The final release of this patch shall keep compatibility on real hardware intact, either via Mega Everdrive pro or via cart/CD combo. 
 Since the only Emulator I found this working on was [Kega Fusion](https://www.carpeludum.com/kega-fusion/) 3.64*, I'm only targeting real hardware.
 
-*If the option "CartBootEnabled=1" is present in fusion.ini
+*If the option "CartBootEnabled=1" is present in fusion.ini, load rom first, then cue.
 
 
 ### Requirements
