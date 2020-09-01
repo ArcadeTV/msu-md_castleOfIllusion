@@ -8,7 +8,8 @@ Romhack for Sega Genesis/Mega Drive that adds CD audio to the game by using krik
 * evilhamwizard for his valuable [notes](https://forums.sonicretro.org/index.php?threads/castle-of-illusion-j-crap.34919/) and [disassembly](https://www.mediafire.com/download/9f63iw0otlfsu26/castle+of+illusion+disassembly+11-2-2015.7z).
 
 ### Compatibility Goals
-The final release of this patch shall keep compatibility on real hardware intact, either via Mega Everdrive pro or via cart/CD combo. Since the only Emulator I found this working on, emulators
+The final release of this patch shall keep compatibility on real hardware intact, either via Mega Everdrive pro or via cart/CD combo. 
+Since the only Emulator I found this working on was [Kega Fusion](https://www.carpeludum.com/kega-fusion/) 3.64, I'm only targeting real hardware.
 
 ### Requirements
 
