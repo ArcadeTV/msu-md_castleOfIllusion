@@ -13,7 +13,7 @@ Thanks and credits:
 I'm on Win10/64, so I can't tell you how to set things up for other OS'es.
 
 * JAP version of the game rom (CRC:CE8333C6)
-* [VASM](http://sun.hasenbraten.de/vasm/) (vasmm68k_mot_win32.exe)
+* [VASM](http://sun.hasenbraten.de/vasm/) ([vasmm68k_mot_win32.exe](http://www.alphatron.co.uk/vasm/)) <- Win-compiled by Rob
 * [supertails66](https://github.com/suppertails66) [yuitools](https://github.com/suppertails66/yuitools) [srecpatch.exe](https://github.com/suppertails66/yuitools/blob/master/new_tools/srecpatch.exe)
 
 Please see the wiki for further information
