@@ -1,4 +1,5 @@
 ; RAM Locations
+CurrentGM		EQU	$F300					; ID of current GameMode
 CurrentSoundID	EQU	$F40E					; ID of current Sound
 b_cd_audio 		EQU	$0DE0					; CD Audio enabled var
 b_play_last		EQU	$0DE1					; Last CD track played var
@@ -76,14 +77,17 @@ GM_SegaLoop
 
 ;		HIJACKING PlaySound Calls in different Game Modes:
 ;		TrackNo to SoundCode:
-;		01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
-;		81 82 83 84 86 87 93 94 88 8B 8C 8E 91 96 98 89 8A 90 99 9A 9B 9C 9D 9E 9F ??
-
+;		01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 | 26 | 27 28 
+;		81 82 83 84 86 87 93 94 88 8B 8C 8E 91 96 98 89 8A 90 99 9A 9B 9C 9D 9E 9F | D1 | D2 D3
+		
 		org	$8A90							; Staff Roll: Sound Code $90
 		jsr CustomPlaySound					; Overwrite jsr to PlaySound
 		
 		org	$9740							; SetStageSong
 		jmp CustomPlaySound					; Overwrite jmp to PlaySound
+		
+		org $9750							; Array_StageMusicIDs
+		dc.b $D3							; Overwrite Level 2-Boss SoundID ($9F)
 		
 		org $9D58 							; GM_Init (SEGA LOGO)
 		jsr CustomPlaySound
@@ -98,10 +102,16 @@ GM_SegaLoop
 		;jsr pause_fade_track				; Fade out Prologue sound
 		jsr CustomPlaySound					; Overwrite jmp to PlaySound
 		
+		org	$A01A
+		;nop
+		;nop
+		;nop	
+		
 		org	$A024							; GM_SoundTestLoop
-		jmp CustomPlaySound					; Overwrite jmp to PlaySound
+		jsr CustomPlaySound					; Overwrite jmp to PlaySound
 		
 		org $A02A
+back_to_SoundTestLoop
 		nop									; enable Stage Selection
 		
 		org	$A27E							; GM_OutsideCastle: Sound Code $9E
@@ -110,10 +120,32 @@ GM_SegaLoop
 		org	$B018							; player_killed: Sound Code $8A
 		jsr CustomPlaySound					; Overwrite jsr to PlaySound
 		
-		org	$121D4							; emerald_appears: Sound Code $99
+		; Diamonds:
+		org	$14B8							; Level ? Diamond: Sound Code $99
 		jsr CustomPlaySound					; Overwrite jsr to PlaySound
-	
-		org $7B120							; jumps to door_sound function in RAM
+		
+		org	$121D4							; Level 1 Diamond: Sound Code $99
+		jsr CustomPlaySound					; Overwrite jsr to PlaySound
+		
+		org	$12BAE							; Level ? Diamond: Sound Code $99
+		jsr CustomPlaySound					; Overwrite jsr to PlaySound
+		
+		org	$13588							; Level ? Diamond: Sound Code $99
+		jsr CustomPlaySound					; Overwrite jsr to PlaySound
+		
+		org	$13F68							; Level ? Diamond: Sound Code $99
+		jsr CustomPlaySound					; Overwrite jsr to PlaySound
+		; --
+		
+		org $7AA90							; GM_StageClearInit; calls function in RAM $FF8A
+		jsr Level_Clear						; Level Complete
+		
+		org $7A5A4							; GM_StageClearInit; calls function in RAM $FF8A
+		jsr Game_Over						; Game Over
+		
+		org $7AD38							; jumps to door_sound function in RAM $FF8A
+		bra pause_fade_track_24
+		org $7B120							; jumps to door_sound function in RAM $FF8A
 		bra pause_fade_track_24
 		
 		org $80000
@@ -211,142 +243,154 @@ find_track
 		beq 	play_track_26
 		cmp.b 	#$D2,d0
 		beq 	play_track_27
+		cmp.b 	#$D3,d0
+		beq 	play_track_28
 break
 		rts
 		
-play_track_1
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_1								; Prologue
+		jsr 	mute_chipmusic
 		move.w 	#($1100|1),MCD_CMD 			; send cmd: play track #1, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_2
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_2								; Stage 1-1
+		jsr 	mute_chipmusic
 		move.w 	#($1200|2),MCD_CMD 			; send cmd: play track #2, loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_3
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_3								; Substage
+		jsr 	mute_chipmusic
 		move.w 	#($1100|3),MCD_CMD 			; send cmd: play track #3, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_4
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_4								; Stage 1-2
+		jsr 	mute_chipmusic
 		move.w 	#($1100|4),MCD_CMD 			; send cmd: play track #4, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_5
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_5								; Stage 1-Rolling Apple
+		jsr 	mute_chipmusic
 		move.w 	#($1100|5),MCD_CMD 			; send cmd: play track #5, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_6
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_6								; Stage 2-1
+		jsr 	mute_chipmusic
 		move.w 	#($1100|6),MCD_CMD 			; send cmd: play track #6, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_7
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_7								; Stage 2-2 (Dash)
+		jsr 	mute_chipmusic
 		move.w 	#($1100|7),MCD_CMD 			; send cmd: play track #7, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_8
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_8								; Stage 2-1 (Intro Variant)
+		jsr 	mute_chipmusic
 		move.w 	#($1100|8),MCD_CMD 			; send cmd: play track #8, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_9
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_9								; Stage 2-3
+		jsr 	mute_chipmusic
 		move.w 	#($1100|9),MCD_CMD 			; send cmd: play track #9, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_10
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_10								; Stage 3-1
+		jsr 	mute_chipmusic
 		move.w 	#($1100|10),MCD_CMD 		; send cmd: play track #10, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_11
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_11								; Stage 3-2
+		jsr 	mute_chipmusic
 		move.w 	#($1100|11),MCD_CMD 		; send cmd: play track #11, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_12
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_12								; Stage 4-1
+		jsr		mute_chipmusic
 		move.w 	#($1100|12),MCD_CMD 		; send cmd: play track #12, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_13
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_13								; Stage 4-2
+		jsr 	mute_chipmusic
 		move.w 	#($1100|13),MCD_CMD 		; send cmd: play track #13, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_14
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_14								; Stage 5-1
+		jsr 	mute_chipmusic
 		move.w 	#($1100|14),MCD_CMD 		; send cmd: play track #14, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_15
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_15								; Stage 5-2
+		jsr 	mute_chipmusic
 		move.w 	#($1100|15),MCD_CMD 		; send cmd: play track #15, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_16
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_16								; Stage Clear
+		jsr 	mute_chipmusic
 		move.w 	#($1100|16),MCD_CMD 		; send cmd: play track #16, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+		move.w 	(CurrentGM).w,d0			; get current game mode
+		cmp.b 	#$0A,d0						; $0A = Sound Test
+		beq 	track_16_soundtest_handler
+		dc.b 	$4E,$B8,$FF,$8A				; jump back
+track_16_soundtest_handler
 		rts
-play_track_17
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_17								; Lost a Life
+		jsr 	mute_chipmusic
 		move.w 	#($1100|17),MCD_CMD 		; send cmd: play track #17, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_18
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_18								; Staff Roll
+		jsr 	mute_chipmusic
 		move.w 	#($1100|18),MCD_CMD 		; send cmd: play track #18, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_19
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_19								; Diamond
+		jsr 	mute_chipmusic
 		move.w 	#($1100|19),MCD_CMD 		; send cmd: play track #19, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_20
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_20								; Final Boss
+		jsr 	mute_chipmusic
 		move.w 	#($1100|20),MCD_CMD 		; send cmd: play track #20, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_21
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_21								; Ending
+		jsr 	mute_chipmusic
 		move.w 	#($1100|21),MCD_CMD 		; send cmd: play track #21, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_22
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_22								; Rainbow
+		jsr 	mute_chipmusic
 		move.w 	#($1100|22),MCD_CMD 		; send cmd: play track #22, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_23
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_23								; Game Over
+		jsr 	mute_chipmusic
 		move.w 	#($1100|23),MCD_CMD 		; send cmd: play track #23, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_24
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_24								; Castle
+		jsr 	mute_chipmusic
 		move.w 	#($1100|24),MCD_CMD 		; send cmd: play track #24, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_25
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
-		move.w 	#($1100|25),MCD_CMD 		; send cmd: play track #25, no loop
+play_track_25								; Boss Level 1
+		jsr 	mute_chipmusic
+		move.w 	#($1200|25),MCD_CMD 		; send cmd: play track #25, loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_26
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_26								; SEEEGAAAA
+		jsr 	mute_chipmusic
 		move.w 	#($1100|26),MCD_CMD 		; send cmd: play track #26, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
-play_track_27
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+play_track_27								; Title - Castle of Illusion (voice)
+		jsr 	mute_chipmusic
 		move.w 	#($1100|27),MCD_CMD 		; send cmd: play track #26, no loop
+		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+		rts
+play_track_28								; BOSS - Level 2 - Jack in the Box
+		jsr 	mute_chipmusic
+		move.w 	#($1200|28),MCD_CMD 		; send cmd: play track #26, loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
 
@@ -372,7 +416,32 @@ resume_track
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
 		
-		
+Level_Clear
+		move.b  #$89,(CurrentSoundID).w
+		clr.l 	d0
+		move.b 	(CurrentSoundID).w,d0
+		jsr 	CustomPlaySound
+		rts
+
+Game_Over
+		move.b  #$9D,(CurrentSoundID).w
+		clr.l 	d0
+		move.b 	(CurrentSoundID).w,d0
+		jsr 	CustomPlaySound
+		rts
+
+
+mute_chipmusic
+		move.w 	(CurrentGM).w,d0			; get current game mode
+		cmp.b 	#$0A,d0						; $0A = Sound Test
+		beq 	jump_back_to_SoundTestLoop
+		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+		rts
+
+jump_back_to_SoundTestLoop
+		move.b 	(CurrentSoundID).w,d0
+		jmp back_to_SoundTestLoop
+
 cd_audio_tbl
 ;			 Track#							  Request#	Code	Name
 		dc.w 1								; $00: 		0x81 	Title Prologue
@@ -401,3 +470,29 @@ cd_audio_tbl
 		dc.w -1								; $23: 		0x9E 	Castle
 		dc.w -1								; $24: 		0x9F 	Boss
 		dc.w -1								; $25: 		0x?? 	Stage 1-1 (Intro Variation) [NOT present in SOUND TEST]
+
+;GM_Array:;;;;;;;;;;;;;;;@FF:F300
+;GM_Init            	; 00
+;GM_SegaLoop_j      	; 02
+;GM_OpeningInit     	; 04
+;GM_OpeningLoop     	; 06
+;GM_InitSoundTest   	; 08
+;GM_SoundTestLoop   	; 0A
+;GM_StageInit       	; 0C
+;GM_StageLoop       	; 0E
+;GM_StageInverter   	; 10
+;GM_TitleLoop       	; 12
+;GM_EndingInit      	; 14
+;GM_Ending          	; 16
+;GM_GameOverInit_j  	; 18
+;GM_GameOverLoop_j  	; 1A
+;GM_CopyrightInit_j 	; 1C
+;GM_CopyrightLoop_j 	; 1E
+;GM_InitCastleLoop_j 	; 20
+;GM_CastleLoop_j    	; 22
+;GM_StageClearInit_j 	; 24
+;GM_StageClearLoop_j 	; 26
+;GM_OutsideCastle   	; 28
+;sub_A286           	; 2A
+;GM_CastleEscapeInit 	; 2C
+;GM_CastleEscapeLoop 	; 2E
