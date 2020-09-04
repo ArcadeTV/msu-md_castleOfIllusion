@@ -15,7 +15,7 @@ Since the only Emulator I found this working on was [Kega Fusion](https://www.ca
 *If the option "CartBootEnabled=1" is present in fusion.ini, load rom first, then cue.
 
 
-### Requirements
+### Build Requirements
 
 I'm on Win10/64, so I can't tell you how to set things up for other OS'es.
 
@@ -25,3 +25,9 @@ I'm on Win10/64, so I can't tell you how to set things up for other OS'es.
 
 Please see the wiki for further information
 https://github.com/ArcadeTV/msu-md_castleOfIllusion/wiki
+
+
+### Patching
+
+Use the BPS patch file from the current release to patch your ROM.
+I recommend [FLIPS](https://dl.smwcentral.net/11474/floating.zip)
