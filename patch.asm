@@ -3,8 +3,9 @@ CurrentGM		EQU	$F300					; ID of current GameMode
 CurrentSoundID	EQU	$F40E					; ID of current Sound
 b_cd_audio 		EQU	$0DE0					; CD Audio enabled var
 b_play_last		EQU	$0DE1					; Last CD track played var
-door_sound		EQU $FF8A					; Function in RAM which calls PlaySound (SoundCode $C6 in D0)
+FF_PlaySound	EQU $FF8A					; Function in RAM which calls PlaySound (SoundCode $C6 in D0)
 EnablePauseFlag EQU $F41D
+CurrentScene 	EQU $F370
 
 ; I/O
 HW_version		EQU	$A10001					; hardware version in low nibble
@@ -57,36 +58,41 @@ MCD_CMD_CK 		EQU $A1201F
 ;$D5			; Stage 4-Boss - Candydragon	(loop)
 ;$D6			; Stage 3-Boss - Aquamen		(loop)
 ;$D7			; Stage 5-Boss - Hunchback		(loop)
+;$D8 			; Stage Stage 5-1-2 Underwater 	(loop)
+;$D9 			; Stage Stage 3-3 Rising Water 	(loop)
 ;				; - nothing on $8D $8F $95 $97
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-		org 	$1A4						; ROM_END
-		dc.l 	$000FFFFF					; Overwrite with 8 MBIT size
+		org 	$1A4							; ROM_END
+		dc.l 	$000FFFFF						; Overwrite with 8 MBIT size
 
 
-		org 	$324						; Beginning of checksum-check function
-		jsr 	MSUDRV						; Call MSU-MD init
+		org 	$324							; Beginning of checksum-check function
+		jsr 	MSUDRV							; Call MSU-MD init
 		jsr 	audio_init
 		jmp 	ResumeAfterChecksumCheck
 
-		org 	$346						; only for Label
+		org 	$346							; only for Label
 ResumeAfterChecksumCheck
 
-		org 	$1F0						; COUNTRY CODES
-		dc.b	"JUE  "						; Overwrite "JAPAN" with JUE
+		org 	$1F0							; COUNTRY CODES
+		dc.b	"JUE  "							; Overwrite "JAPAN" with JUE
 		
 		
-		org 	$79F86						; only for Label
+		org 	$79F86							; only for Label
 PlaySound
 
-		org 	$7A494						; only for Label
+		org 	$7A494							; only for Label
 GM_SegaLoop
 		
 
 ;		HIJACKING PlaySound Calls in different Game Modes:
 ;		TrackNo to SoundCode:
-;		01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 | 26 | 27 28 
-;		81 82 83 84 86 87 93 94 88 8B 8C 8E 91 96 98 89 8A 90 99 9A 9B 9C 9D 9E 9F | D1 | D2 D3
+;		01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 | 26 | 27 28 29 30 31 32 33
+;		81 82 83 84 86 87 93 94 88 8B 8C 8E 91 96 98 89 8A 90 99 9A 9B 9C 9D 9E 9F | D1 | D2 D3 D5 D6 D7 D8 D9
+		
+		org		$850							; Stage 2-1 Dash: Sound Code $93
+		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
 		
 		org		$8A90							; Staff Roll: Sound Code $90
 		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
@@ -100,13 +106,17 @@ GM_SegaLoop
 		org		$9740							; SetStageSong
 		jmp 	CustomPlaySound					; Overwrite jmp to PlaySound
 		
-		org 	$9750							; Array_StageMusicIDs
+		org 	$9750							; Array_StageMusicIDs --------------------
 		dc.b 	$D3								; Overwrite Level 2-Boss SoundID $9F->$D3
-		org 	$9754							; Array_StageMusicIDs
+		org 	$9753
+		dc.b 	$D9								; Overwrite Level 3-3 SoundID $8C->$D9
+		org 	$9754
 		dc.b 	$D6								; Overwrite Level 3-Boss SoundID $9F->$D6
-		org 	$975E							; Array_StageMusicIDs
+		org 	$975E
 		dc.b 	$D5								; Overwrite Level 4-Boss SoundID $9F->$D5
-		org 	$9762							; Array_StageMusicIDs
+		org 	$9760
+		dc.b 	$D8								; Overwrite Level 5-S SoundID $96->$D8
+		org 	$9762
 		dc.b 	$D7								; Overwrite Level 5-Boss SoundID $9F->$D5
 		
 		org 	$9810							; PauseGame:
@@ -168,9 +178,11 @@ back_to_SoundTestLoop
 		org 	$7A5A4							; GM_StageClearInit; calls function in RAM $FF8A
 		jsr 	Game_Over						; Game Over
 			
-		org 	$7AD38							; jumps to door_sound function in RAM $FF8A
+		org 	$7AD38							; Castle Music $9F 	jumps to function in RAM $FF8A -> jmp PlaySound
+		bra 	CustomPlaySound
+		org 	$7B120							; Doorclose SFX $BF	jumps to function in RAM $FF8A -> jmp PlaySound
 		bra 	pause_fade_track_24
-		org 	$7B120							; jumps to door_sound function in RAM $FF8A
+		org 	$7B14A							; Doorclose SFX $BF	jumps to function in RAM $FF8A -> jmp PlaySound
 		bra 	pause_fade_track_24
 			
 		org 	$80000
@@ -215,7 +227,7 @@ find_track
 		move.b 	d0,b_play_last				; save last played Track
 		
 		cmp.b 	#$D1,d0
-		beq 	pause_track
+		beq 	pause_fade_track
 		
 		cmp.b 	#$81,d0
 		beq 	play_track_1
@@ -279,6 +291,10 @@ find_track
 		beq 	play_track_30
 		cmp.b 	#$D7,d0
 		beq 	play_track_31
+		cmp.b 	#$D8,d0
+		beq 	play_track_32
+		cmp.b 	#$D9,d0
+		beq 	play_track_33
 break
 		rts
 		
@@ -404,9 +420,14 @@ play_track_23								; Game Over
 		rts
 play_track_24								; Castle
 		jsr 	mute_chipmusic
+		move.w 	(CurrentScene).w,d0			; get current game mode
+		cmp.b 	#$05,d0						; $05 = Castle Doors Scene #1
+		beq 	track_24_return
 		move.w 	#($1100|24),MCD_CMD 		; send cmd: play track #24, no loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
+track_24_return
+		dc.b 	$4E,$B8,$FF,$8A				; jump back
 play_track_25								; Boss Level 1
 		jsr 	mute_chipmusic
 		move.w 	#($1200|25),MCD_CMD 		; send cmd: play track #25, loop
@@ -442,20 +463,30 @@ play_track_31								; BOSS - Level 5 - Hunchback
 		move.w 	#($1200|31),MCD_CMD 		; send cmd: play track #31, loop
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
+play_track_32								; Stage 5-2-1 Castle Underwater Passage
+		jsr 	mute_chipmusic
+		move.w 	#($1200|32),MCD_CMD 		; send cmd: play track #32, loop
+		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+		rts
+play_track_33								; Stage 3-3 Ruins Rising Water
+		jsr 	mute_chipmusic
+		move.w 	#($1200|33),MCD_CMD 		; send cmd: play track #33, loop
+		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+		rts
 
 
 pause_fade_track
-		move.w 	#($1300|150),MCD_CMD 		; send cmd: play track #26, no loop
+		move.w 	#($1300|150),MCD_CMD 		; send cmd: fade track 2sec
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
 		
 pause_track
-		move.w 	#($1300|0),MCD_CMD 			; send cmd: play track #26, no loop
+		move.w 	#($1300|0),MCD_CMD 			; send cmd: pause track
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		rts
 
-pause_fade_track_24
-		move.w 	#($1300|100),MCD_CMD 		; send cmd: play track #26, no loop
+pause_fade_track_24							; Castle Doors Music
+		move.w 	#($1300|100),MCD_CMD 		; send cmd: fade track 1,33sec
 		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 		dc.b 	$4E,$B8,$FF,$8A				; jump back
 		rts
