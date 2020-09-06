@@ -19,7 +19,7 @@ Since the only Emulator I found this working on was [Kega Fusion](https://www.ca
 
 I'm on Win10/64, so I can't tell you how to set things up for other OS'es.
 
-* JAP version of the game rom (CRC:CE8333C6) padded to 8MBIT/1024Bytes/1MByte (typical name is Castle of Illusion - Fushigi no Oshiro Daibouken (Japan).md)
+* JAP version of the game rom (CRC:CE8333C6) padded to 16MBIT/2048Bytes/2MByte (typical name is Castle of Illusion - Fushigi no Oshiro Daibouken (Japan).md)
 * [VASM](http://sun.hasenbraten.de/vasm/) ([vasmm68k_mot_win32.exe](http://www.alphatron.co.uk/vasm/)) <- Win-compiled by Rob
 * [supertails66](https://github.com/suppertails66) [yuitools](https://github.com/suppertails66/yuitools) [srecpatch.exe](https://github.com/suppertails66/yuitools/blob/master/new_tools/srecpatch.exe)
 
