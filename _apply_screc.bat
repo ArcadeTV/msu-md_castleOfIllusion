@@ -1,1 +1,0 @@
-srecpatch.exe INPUT.BIN OUTPUT.BIN<srecfile.txt
