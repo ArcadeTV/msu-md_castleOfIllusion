@@ -31,3 +31,10 @@ https://github.com/ArcadeTV/msu-md_castleOfIllusion/wiki
 
 Use the BPS patch file from the current release to patch your ROM.
 I recommend [FLIPS](https://dl.smwcentral.net/11474/floating.zip). Please see the wiki page for a guide on patching.
+
+### Cheats
+
+For the purpose of testing until the first release I enabled some cheats:
+* Unlimited Energy
+* Stage Selection from the Sound Test menu
+* Easy-kill bosses 1 & 2
