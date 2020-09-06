@@ -449,8 +449,8 @@ play_track_24								; Castle
 		beq 	track_24_return
 		rts
 track_24_return
-		dc.b 	$4E,$B8,$FF,$8A				; jump back
-		;jmp 	$7AD3C
+		;dc.b 	$4E,$B8,$FF,$8A				; jump back
+		jmp 	$7AD3C
 play_track_25								; Boss Level 1
 		jsr 	mute_chipmusic
 		move.w 	#($1200|25),MCD_CMD 		; send cmd: play track #25, loop
