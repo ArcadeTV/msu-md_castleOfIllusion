@@ -106,17 +106,17 @@ GM_SegaLoop
 		
 		; CHEATS ---------------------------------------------------------------------------------------------
 		org 	$92F4;us
-		;subq.w  #0,($F322).w					; CHEAT -> don't descrease Energy
+		subq.w  #0,($F322).w					; CHEAT -> don't descrease Energy
 		
 		org		$11DC7;us						; Tree Hitcount ($0A) [normal]
-		;dc.b 	$02
+		dc.b 	$02
 		org		$11DD2;us						; Tree Hitcount ($14) [hard]
-		;dc.b 	$02
+		dc.b 	$02
 		
 		org		$1280D;us						; Boss 2 Hitcount ($0A) [normal]
-		;dc.b 	$02
+		dc.b 	$02
 		org		$1281B;us						; Boss 2 Hitcount ($14) [hard]
-		;dc.b 	$02
+		dc.b 	$02
 		; END CHEATS -----------------------------------------------------------------------------------------
 		
 		org		$96A8;us						; SetStageSong
@@ -163,7 +163,7 @@ GM_SegaLoop
 		
 		org 	$9F6C;us
 back_to_SoundTestLoop
-		;nop										; enable Stage Selection <---------------------------- CHEAT
+		nop										; enable Stage Selection <---------------------------- CHEAT
 		
 		org		$A1C0;us						; GM_OutsideCastle: Sound Code $9E
 		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
@@ -217,7 +217,7 @@ MSUDRV
 		
 		org 	$80750
 CustomPlaySound
-		tst.b 	b_cd_audio					; is CD Audio enabled?
+		tst.b 	(b_cd_audio).w				; is CD Audio enabled?
 		beq.s 	passthrough					; branch if not
 		
 ready
