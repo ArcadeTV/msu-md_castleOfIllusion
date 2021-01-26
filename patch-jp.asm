@@ -1,6 +1,6 @@
 ; Build setup
 PRODUCTION  set 1                           ; set to 0 for GENS compatibility (for debugging) and 1 when ready
-CHEAT       set 1                           ; set to 1 for cheat enabled
+CHEAT       set 0                           ; set to 1 for cheat enabled
 
 ; RAM Locations
 CurrentGM		EQU	$F300					; ID of current GameMode

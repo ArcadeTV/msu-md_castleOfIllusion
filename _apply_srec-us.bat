@@ -1,0 +1,1 @@
+..\srecpatch.exe "ROMS\MICKEY_US_UNTOUCHED_16M.BIN" OUTPUT\out-us.md<srecfile.txt

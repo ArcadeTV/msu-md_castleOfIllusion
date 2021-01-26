@@ -1,3 +1,7 @@
+; Build setup
+PRODUCTION  set 1                           ; set to 0 for GENS compatibility (for debugging) and 1 when ready
+CHEAT       set 0                           ; set to 1 for cheat enabled
+
 ; RAM Locations
 CurrentGM		EQU	$F300					; ID of current GameMode
 CurrentSoundID	EQU	$F40E					; ID of current Sound
@@ -9,13 +13,13 @@ CurrentScene 	EQU $F370
 
 ; I/O
 HW_version		EQU	$A10001					; hardware version in low nibble
-											; bit 6 is PAL (50Hz) if set, NTSC (60Hz) if clear
-											; region flags in bits 7 and 6:
-											;         USA NTSC = $80
-											;         Asia PAL = $C0
-											;         Japan NTSC = $00
-											;         Europe PAL = $C0
-											
+                                            ; bit 6 is PAL (50Hz) if set, NTSC (60Hz) if clear
+                                            ; region flags in bits 7 and 6:
+                                            ;         USA NTSC = $80
+                                            ;         Asia PAL = $C0
+                                            ;         Japan NTSC = $00
+                                            ;         Europe PAL = $C0
+                                            
 ; MSU-MD vars
 MCD_STAT		EQU $A12020					; 0-ready, 1-init, 2-cmd busy
 MCD_CMD			EQU $A12010
@@ -62,541 +66,550 @@ MCD_CMD_CK 		EQU $A1201F
 ;$D9 			; Stage Stage 3-3 Rising Water 	(loop)
 ;				; - nothing on $8D $8F $95 $97
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-		
-		org $4
-		dc.l 	$90000							; custom entry point for redirecting
-		
-		org 	$1A4							; ROM_END
-		dc.l 	$002FFFFF						; Overwrite with 8 MBIT size
-		
-		org 	$300							; original entry point, after reset-checks ($200 present in the header)
+        
+    org $4
+    dc.l 	$90000							; custom entry point for redirecting
+    
+    org 	$1A4							; ROM_END
+    dc.l 	$002FFFFF						; Overwrite with 8 MBIT size
+    
+    org 	$300							; original entry point, after reset-checks ($200 present in the header)
 Game
 
-		org 	$324							; Beginning of checksum-check function
-		jmp 	audio_init						; Call MSU-MD init
+    org 	$324							; Beginning of checksum-check function
+    jmp 	audio_init						; Call MSU-MD init
 
 
-		org 	$346							; only for Label
+    org 	$346							; only for Label
 ResumeAfterChecksumCheck
 
-		org 	$1F0							; COUNTRY CODES
-		dc.b	"JU   "							; Overwrite "JAPAN" with JUE
-		
-		
-		org 	$79F86							; only for Label
+    org 	$1F0							; COUNTRY CODES
+    dc.b	"JU   "							; Overwrite "JAPAN" with JUE
+    
+    
+    org 	$79F86							; only for Label
 PlaySound
 
-		org 	$7A4AA;us						; only for Label
+    org 	$7A4AA;us						; only for Label
 GM_SegaLoop
-		
+    
 
 ;		HIJACKING PlaySound Calls in different Game Modes:
 ;		TrackNo to SoundCode:
 ;		01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 | 26 | 27 28 29 30 31 32 33
 ;		81 82 83 84 86 87 93 94 88 8B 8C 8E 91 96 98 89 8A 90 99 9A 9B 9C 9D 9E 9F | D1 | D2 D3 D5 D6 D7 D8 D9
-		
-		org		$84a;us							; Stage 2-1 Dash: Sound Code $93
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		org		$89FA;us						; Staff Roll: Sound Code $90
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		org		$1752;us						; Apple Dash: Sound Code $86
-		jsr 	CustomPlaySound					; Overwrite jmp to PlaySound
-		
-		; CHEATS ---------------------------------------------------------------------------------------------
-		org 	$92F4;us
-		subq.w  #0,($F322).w					; CHEAT -> don't descrease Energy
-		
-		org		$11DC7;us						; Tree Hitcount ($0A) [normal]
-		dc.b 	$02
-		org		$11DD2;us						; Tree Hitcount ($14) [hard]
-		dc.b 	$02
-		
-		org		$1280D;us						; Boss 2 Hitcount ($0A) [normal]
-		dc.b 	$02
-		org		$1281B;us						; Boss 2 Hitcount ($14) [hard]
-		dc.b 	$02
-		; END CHEATS -----------------------------------------------------------------------------------------
-		
-		org		$96A8;us						; SetStageSong
-		jmp 	CustomPlaySound					; Overwrite jmp to PlaySound
-		
-		org 	$96B8;us						; Array_StageMusicIDs --------------------
-		dc.b 	$D3								; Overwrite Level 2-Boss SoundID $9F->$D3
-		org 	$96BB;us
-		dc.b 	$D9								; Overwrite Level 3-3 SoundID $8C->$D9
-		org 	$96BC;us
-		dc.b 	$D6								; Overwrite Level 3-Boss SoundID $9F->$D6
-		org 	$96C6;us
-		dc.b 	$D5								; Overwrite Level 4-Boss SoundID $9F->$D5
-		org 	$96C8;us
-		dc.b 	$D8								; Overwrite Level 5-S SoundID $96->$D8
-		org 	$96CA;us
-		dc.b 	$D7								; Overwrite Level 5-Boss SoundID $9F->$D5
-		
-		org 	$9778;us						; PauseGame:
-		jsr 	PauseGame
-		
-		org 	$9C97;us
-		dc.b 	$D4								; Overwrite Sound Code D1 to D4 (SEGA LOGO)
-		org 	$9C9A;us						; GM_Init (SEGA LOGO)
-		jsr 	CustomPlaySound
-		
-		org		$9CD8;us						; GM_OpeningInit: Sound Code $81
-		jmp 	CustomPlaySound					; Overwrite jmp to PlaySound
-		
-		org 	$9D25;us						; GM_OpeningLoop: Sound Code $D1
-		dc.b 	$D2								; Overwrite SoundCode
-		
-		org		$9D28;us						; TITLE SCREEN, GM_OpeningLoop: Sound Code $D1
-		;jsr 	pause_fade_track				; Fade out Prologue sound
-		jsr 	CustomPlaySound					; Overwrite jmp to PlaySound
-		
-		org		$9F5C;us
-		;nop
-		;nop
-		;nop	
-		
-		org		$9F66;us						; GM_SoundTestLoop
-		jsr 	CustomPlaySound					; Overwrite jmp to PlaySound
-		
-		org 	$9F6C;us
+    
+    org		$84a;us							; Stage 2-1 Dash: Sound Code $93
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    org		$89FA;us						; Staff Roll: Sound Code $90
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    org		$1752;us						; Apple Dash: Sound Code $86
+    jsr 	CustomPlaySound					; Overwrite jmp to PlaySound
+    
+    ; CHEATS ---------------------------------------------------------------------------------------------
+
+    if CHEAT
+    org 	$92F4;us
+    subq.w  #0,($F322).w					; CHEAT -> don't descrease Energy
+    
+    org		$11DC7;us						; Tree Hitcount ($0A) [normal]
+    ;dc.b 	$02
+    org		$11DD2;us						; Tree Hitcount ($14) [hard]
+    ;dc.b 	$02
+    
+    org		$1280D;us						; Boss 2 Hitcount ($0A) [normal]
+    ;dc.b 	$02
+    org		$1281B;us						; Boss 2 Hitcount ($14) [hard]
+    ;dc.b 	$02
+    endif
+
+    ; END CHEATS -----------------------------------------------------------------------------------------
+    
+    org		$96A8;us						; SetStageSong
+    jmp 	CustomPlaySound					; Overwrite jmp to PlaySound
+    
+    org 	$96B8;us						; Array_StageMusicIDs --------------------
+    dc.b 	$D3								; Overwrite Level 2-Boss SoundID $9F->$D3
+    org 	$96BB;us
+    dc.b 	$D9								; Overwrite Level 3-3 SoundID $8C->$D9
+    org 	$96BC;us
+    dc.b 	$D6								; Overwrite Level 3-Boss SoundID $9F->$D6
+    org 	$96C6;us
+    dc.b 	$D5								; Overwrite Level 4-Boss SoundID $9F->$D5
+    org 	$96C8;us
+    dc.b 	$D8								; Overwrite Level 5-S SoundID $96->$D8
+    org 	$96CA;us
+    dc.b 	$D7								; Overwrite Level 5-Boss SoundID $9F->$D5
+    
+    org 	$9778;us						; PauseGame:
+    jsr 	PauseGame
+    
+    org 	$9C97;us
+    dc.b 	$D4								; Overwrite Sound Code D1 to D4 (SEGA LOGO)
+    org 	$9C9A;us						; GM_Init (SEGA LOGO)
+    jsr 	CustomPlaySound
+    
+    org		$9CD8;us						; GM_OpeningInit: Sound Code $81
+    jmp 	CustomPlaySound					; Overwrite jmp to PlaySound
+    
+    org 	$9D25;us						; GM_OpeningLoop: Sound Code $D1
+    dc.b 	$D2								; Overwrite SoundCode
+    
+    org		$9D28;us						; TITLE SCREEN, GM_OpeningLoop: Sound Code $D1
+    ;jsr 	pause_fade_track				; Fade out Prologue sound
+    jsr 	CustomPlaySound					; Overwrite jmp to PlaySound
+    
+    org		$9F5C;us
+    ;nop
+    ;nop
+    ;nop	
+    
+    org		$9F66;us						; GM_SoundTestLoop
+    jsr 	CustomPlaySound					; Overwrite jmp to PlaySound
+    
+    if CHEAT
+    org 	$9F6C;us
 back_to_SoundTestLoop
-		nop										; enable Stage Selection <---------------------------- CHEAT
-		
-		org		$A1C0;us						; GM_OutsideCastle: Sound Code $9E
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		org		$AF10;us						; player_killed: Sound Code $8A
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		; Diamonds:------------------------------
-		org		$14B2;us						; Level ? Diamond: Sound Code $99
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		org 	$11616;us						; Level ? Diamond: Sound Code $99
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		org		$120AC;us						; Level 1 Diamond: Sound Code $99
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		org		$12A86;us						; Level ? Diamond: Sound Code $99
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		org		$13460;us						; Level ? Diamond: Sound Code $99
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		org		$13E40;us						; Level ? Diamond: Sound Code $99
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		; ---------------------------------------
-		
-		org 	$7B7AA;us						; Rainbow Bridge: Sound Code $9C
-		bra 	CustomPlaySound
-		
-		org 	$10896;us						; sub_109B2: Mizrabel Defeated: Sound Code $9B
-		jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
-		
-		org 	$7AA9C;us						; GM_StageClearInit; calls function in RAM $FF8A
-		jsr 	Level_Clear						; Level Complete
-			
-		org 	$7A5B0;us						; GM_StageClearInit; calls function in RAM $FF8A
-		jsr 	Game_Over						; Game Over
-			
-		org 	$7AD3A;us						; Castle Music $9E 	jumps to function in RAM $FF8A -> jmp PlaySound
-		bra 	CustomPlaySound
-		org 	$7B122;us						; Into Level, Doorclose SFX $BF	jumps to function in RAM $FF8A -> jmp PlaySound
-		bra 	pause_fade_track_24
-		org 	$7B14C;us						; After LevelClear, Out the door, Doorclose SFX $BF	jumps to function in RAM $FF8A -> jmp PlaySound
-		bra 	CustomPlaySound
-			
-		org 	$80000
+    nop										; enable Stage Selection <---------------------------- CHEAT
+    endif
+
+    org		$A1C0;us						; GM_OutsideCastle: Sound Code $9E
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    org		$AF10;us						; player_killed: Sound Code $8A
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    ; Diamonds:---------------------------------------------------------------------
+    org		$14B2;us						; Level ? Diamond: Sound Code $99
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    org 	$11616;us						; Level ? Diamond: Sound Code $99
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    org		$120AC;us						; Level 1 Diamond: Sound Code $99
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    org		$12A86;us						; Level ? Diamond: Sound Code $99
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    org		$13460;us						; Level ? Diamond: Sound Code $99
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    org		$13E40;us						; Level ? Diamond: Sound Code $99
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    ; ------------------------------------------------------------------------------
+    
+    org 	$7B7AA;us						; Rainbow Bridge: Sound Code $9C
+    bra 	CustomPlaySound
+    
+    org 	$10896;us						; sub_109B2: Mizrabel Defeated: Sound Code $9B
+    jsr 	CustomPlaySound					; Overwrite jsr to PlaySound
+    
+    org 	$7AA9C;us						; GM_StageClearInit; calls function in RAM $FF8A
+    jsr 	Level_Clear						; Level Complete
+        
+    org 	$7A5B0;us						; GM_StageClearInit; calls function in RAM $FF8A
+    jsr 	Game_Over						; Game Over
+        
+    org 	$7AD3A;us						; Castle Music $9E 	jumps to function in RAM $FF8A -> jmp PlaySound
+    bra 	CustomPlaySound
+    org 	$7B122;us						; Into Level, Doorclose SFX $BF	jumps to function in RAM $FF8A -> jmp PlaySound
+    bra 	pause_fade_track_24
+    org 	$7B14C;us						; After LevelClear, Out the door, Doorclose SFX $BF	jumps to function in RAM $FF8A -> jmp PlaySound
+    bra 	CustomPlaySound
+        
+    org 	$80000
 MSUDRV
-		dc.b	$30,$3C,$00,$01,$0C,$B9,$53,$45,$47,$41,$00,$40,$01,$00,$66,$00,$00,$5E,$13,$FC,$00,$02,$00,$A1,$20,$01,$08,$39,$00,$01,$00,$A1,$20,$01,$13,$FC,$00,$00,$00,$A1,$20,$03,$20,$7C,$00,$00,$00,$34,$22,$7C,$00,$42,$00,$00,$30,$3C,$03,$62,$32,$FB,$88,$00,$54,$48,$51,$C8,$FF,$F8,$13,$FC,$00,$00,$00,$A1,$20,$0F,$13,$FC,$00,$01,$00,$A1,$20,$01,$10,$39,$00,$A1,$20,$01,$02,$00,$00,$01,$67,$00,$FF,$F4,$13,$FC,$00,$00,$00,$A1,$20,$02,$30,$3C,$00,$00,$4E,$75,$00,$00,$00,$00,$00,$00,$00,$7C,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$A0,$00,$00,$00,$90,$00,$00,$00,$A0,$00,$00,$00,$A0,$2E,$7C,$00,$08,$00,$00,$46,$FC,$20,$00,$4E,$F9,$00,$00,$03,$2A,$4E,$FA,$FF,$EE,$48,$E7,$C0,$C0,$4E,$B9,$00,$00,$05,$8C,$4C,$DF,$03,$03,$4E,$73,$4E,$73,$00,$00,$12,$2F,$00,$07,$10,$39,$00,$07,$01,$AD,$66,$F8,$13,$C1,$00,$07,$01,$AC,$23,$EF,$00,$08,$00,$07,$01,$A8,$13,$FC,$00,$01,$00,$07,$01,$AD,$4E,$75,$59,$4F,$2F,$02,$22,$2F,$00,$0C,$4A,$01,$67,$54,$30,$39,$00,$07,$01,$A6,$E4,$48,$24,$00,$E1,$8A,$02,$82,$00,$3F,$FF,$00,$42,$A7,$1F,$41,$00,$03,$2F,$02,$4E,$B9,$00,$00,$06,$50,$50,$8F,$20,$40,$B0,$82,$62,$2C,$22,$79,$00,$00,$06,$C0,$20,$02,$E0,$88,$E5,$48,$33,$40,$00,$34,$94,$88,$1F,$79,$00,$07,$01,$AE,$00,$07,$12,$2F,$00,$07,$10,$39,$00,$07,$01,$AE,$B0,$01,$67,$F2,$B1,$C2,$63,$DA,$24,$1F,$58,$4F,$4E,$75,$12,$2F,$00,$0B,$20,$6F,$00,$04,$30,$2F,$00,$0E,$53,$40,$0C,$40,$FF,$FF,$67,$06,$10,$C1,$51,$C8,$FF,$FC,$4E,$75,$4E,$71,$2F,$02,$10,$2F,$00,$0B,$14,$00,$E8,$0A,$72,$00,$12,$02,$24,$01,$E7,$8A,$D4,$81,$D4,$81,$02,$00,$00,$0F,$D0,$02,$02,$80,$00,$00,$00,$FF,$24,$1F,$4E,$75,$48,$E7,$30,$20,$20,$2F,$00,$10,$74,$00,$26,$00,$42,$43,$48,$43,$2F,$00,$48,$78,$00,$02,$45,$FA,$FF,$1A,$4E,$92,$42,$A7,$42,$A7,$4E,$92,$4F,$EF,$00,$10,$42,$A7,$42,$A7,$4E,$92,$50,$8F,$B6,$39,$00,$07,$01,$B3,$66,$F0,$42,$41,$E9,$8A,$70,$00,$30,$01,$41,$F9,$00,$07,$01,$B2,$84,$30,$08,$02,$52,$41,$0C,$41,$00,$05,$63,$E8,$20,$02,$4C,$DF,$04,$0C,$4E,$75,$48,$E7,$30,$38,$20,$79,$00,$00,$06,$C0,$11,$7C,$00,$00,$00,$01,$20,$79,$00,$00,$06,$C0,$10,$BC,$00,$02,$48,$78,$00,$0C,$42,$A7,$48,$79,$00,$07,$01,$A6,$45,$FA,$FF,$3C,$4E,$92,$48,$78,$01,$9C,$42,$A7,$48,$79,$00,$07,$00,$0A,$4E,$92,$33,$FC,$40,$00,$00,$07,$01,$A6,$4F,$EF,$00,$18,$20,$79,$00,$00,$06,$C0,$10,$28,$00,$01,$08,$00,$00,$00,$67,$F6,$11,$7C,$00,$10,$00,$33,$20,$79,$00,$00,$06,$C0,$31,$7C,$00,$04,$00,$36,$74,$0F,$42,$A7,$42,$A7,$47,$FA,$FE,$6A,$4E,$93,$50,$8F,$53,$42,$6A,$F0,$2F,$3C,$00,$04,$00,$00,$48,$78,$00,$02,$4E,$93,$50,$8F,$74,$2F,$42,$A7,$42,$A7,$4E,$93,$50,$8F,$53,$42,$6A,$F4,$2F,$3C,$00,$04,$00,$00,$49,$FA,$FF,$0A,$4E,$94,$10,$39,$00,$07,$01,$B6,$E9,$88,$02,$80,$00,$00,$0F,$F0,$80,$39,$00,$07,$01,$B7,$42,$A7,$1F,$40,$00,$03,$61,$00,$FE,$C4,$72,$00,$12,$00,$23,$C1,$00,$07,$00,$0A,$36,$3C,$01,$00,$42,$42,$50,$8F,$4A,$81,$67,$54,$20,$02,$E5,$88,$02,$80,$00,$03,$FF,$FC,$24,$40,$D5,$FC,$00,$07,$00,$0A,$20,$03,$02,$80,$00,$05,$FF,$FF,$00,$80,$00,$05,$00,$00,$2F,$00,$4E,$94,$25,$40,$00,$08,$58,$8F,$20,$03,$02,$80,$00,$00,$0F,$00,$32,$03,$06,$41,$07,$00,$0C,$80,$00,$00,$09,$00,$67,$04,$06,$41,$FA,$00,$36,$01,$52,$42,$42,$80,$30,$02,$B0,$B9,$00,$07,$00,$0A,$65,$AC,$2F,$3C,$00,$03,$00,$00,$61,$00,$FE,$76,$23,$C0,$00,$07,$00,$0E,$22,$02,$E5,$89,$02,$81,$00,$03,$FF,$FC,$20,$41,$D1,$FC,$00,$07,$00,$12,$20,$80,$42,$A7,$48,$78,$00,$02,$4E,$93,$4F,$EF,$00,$0C,$4C,$DF,$1C,$0C,$4E,$75,$59,$4F,$2F,$02,$20,$79,$00,$00,$06,$C0,$11,$7C,$00,$01,$00,$20,$61,$00,$FE,$8E,$20,$79,$00,$00,$06,$C0,$10,$BC,$00,$02,$20,$79,$00,$00,$06,$C0,$1F,$68,$00,$1F,$00,$07,$20,$79,$00,$00,$06,$C0,$11,$7C,$00,$00,$00,$20,$20,$79,$00,$00,$06,$C0,$12,$28,$00,$1F,$10,$2F,$00,$07,$B0,$01,$67,$F4,$1F,$68,$00,$1F,$00,$07,$11,$7C,$00,$02,$00,$20,$20,$79,$00,$00,$06,$C0,$10,$28,$00,$10,$0C,$00,$00,$15,$66,$16,$10,$28,$00,$11,$ED,$48,$02,$40,$3F,$C0,$33,$C0,$00,$07,$01,$A6,$31,$40,$00,$34,$60,$B0,$14,$28,$00,$10,$70,$00,$10,$02,$72,$13,$B2,$80,$67,$52,$6D,$0A,$12,$3C,$00,$11,$B2,$80,$6E,$98,$60,$08,$72,$14,$B2,$80,$67,$6C,$60,$8E,$10,$28,$00,$11,$53,$00,$13,$C0,$00,$07,$01,$AF,$E5,$88,$02,$80,$00,$00,$03,$FC,$20,$40,$D1,$FC,$00,$07,$00,$0A,$2F,$28,$00,$08,$48,$78,$00,$03,$61,$00,$FC,$B8,$20,$79,$00,$00,$06,$C0,$31,$79,$00,$07,$01,$A6,$00,$34,$13,$C2,$00,$07,$01,$B0,$60,$44,$10,$28,$00,$11,$42,$A7,$1F,$40,$00,$03,$61,$00,$FC,$B8,$20,$79,$00,$00,$06,$C0,$31,$7C,$00,$00,$00,$34,$42,$A7,$48,$78,$00,$06,$61,$00,$FC,$7E,$4F,$EF,$00,$0C,$60,$00,$FF,$26,$42,$A7,$48,$78,$00,$07,$61,$00,$FC,$6C,$20,$79,$00,$00,$06,$C0,$31,$79,$00,$07,$01,$A6,$00,$34,$50,$8F,$60,$00,$FF,$08,$4E,$71,$2F,$02,$22,$2F,$00,$0C,$41,$F9,$00,$07,$00,$00,$13,$EF,$00,$0B,$00,$07,$00,$00,$42,$39,$00,$07,$00,$01,$42,$39,$00,$07,$00,$08,$20,$01,$42,$40,$48,$40,$E8,$48,$02,$00,$00,$0F,$13,$C0,$00,$07,$00,$02,$20,$01,$42,$40,$48,$40,$02,$00,$00,$0F,$13,$C0,$00,$07,$00,$03,$20,$01,$74,$0C,$E4,$A8,$02,$00,$00,$0F,$13,$C0,$00,$07,$00,$04,$20,$01,$E0,$88,$02,$00,$00,$0F,$13,$C0,$00,$07,$00,$05,$20,$01,$E8,$88,$02,$00,$00,$0F,$13,$C0,$00,$07,$00,$06,$02,$01,$00,$0F,$13,$C1,$00,$07,$00,$07,$42,$39,$00,$07,$00,$09,$42,$41,$70,$00,$30,$01,$10,$30,$08,$00,$D0,$39,$00,$07,$00,$09,$13,$C0,$00,$07,$00,$09,$52,$41,$0C,$41,$00,$08,$63,$E4,$0A,$00,$00,$0F,$02,$00,$00,$0F,$13,$C0,$00,$07,$00,$09,$24,$1F,$4E,$75,$2F,$02,$74,$00,$41,$F9,$00,$07,$01,$B2,$0C,$39,$00,$01,$00,$07,$01,$B2,$66,$76,$4A,$39,$00,$07,$01,$B3,$66,$6E,$42,$41,$E9,$8A,$70,$00,$30,$01,$84,$30,$08,$02,$52,$41,$0C,$41,$00,$05,$63,$EE,$12,$39,$00,$07,$01,$AF,$20,$01,$E5,$88,$02,$80,$00,$00,$03,$FC,$20,$40,$D1,$FC,$00,$07,$00,$16,$20,$10,$55,$80,$B0,$82,$62,$3A,$4A,$39,$00,$07,$00,$00,$66,$32,$43,$FA,$FB,$4C,$0C,$39,$00,$12,$00,$07,$01,$B0,$66,$1A,$20,$01,$E5,$88,$02,$80,$00,$00,$03,$FC,$20,$40,$D1,$FC,$00,$07,$00,$12,$2F,$10,$48,$78,$00,$03,$60,$06,$42,$A7,$48,$78,$00,$06,$4E,$91,$50,$8F,$24,$1F,$4E,$75,$43,$F9,$00,$07,$01,$B2,$20,$79,$00,$00,$06,$C0,$30,$28,$00,$36,$08,$00,$00,$01,$66,$F6,$33,$E8,$00,$38,$00,$07,$01,$B2,$33,$68,$00,$3A,$00,$02,$33,$68,$00,$3C,$00,$04,$33,$68,$00,$3E,$00,$06,$33,$68,$00,$40,$00,$08,$10,$39,$00,$07,$01,$AD,$41,$FA,$FE,$86,$67,$1C,$2F,$39,$00,$07,$01,$A8,$70,$00,$10,$39,$00,$07,$01,$AC,$2F,$00,$4E,$90,$13,$FC,$00,$00,$00,$07,$01,$AD,$60,$06,$42,$A7,$42,$A7,$4E,$90,$50,$8F,$20,$79,$00,$00,$06,$C0,$31,$79,$00,$07,$00,$00,$00,$42,$31,$79,$00,$07,$00,$02,$00,$44,$31,$79,$00,$07,$00,$04,$00,$46,$31,$79,$00,$07,$00,$06,$00,$48,$31,$79,$00,$07,$00,$08,$00,$4A,$0C,$39,$00,$01,$00,$07,$01,$B2,$66,$08,$10,$10,$00,$00,$00,$01,$60,$06,$10,$10,$02,$00,$FF,$FE,$10,$80,$61,$00,$FE,$C2,$10,$39,$00,$07,$01,$AE,$52,$00,$13,$C0,$00,$07,$01,$AE,$4E,$75,$00,$00,$2F,$02,$22,$2F,$00,$0C,$20,$2F,$00,$08,$0C,$81,$00,$01,$00,$00,$64,$16,$24,$00,$42,$42,$48,$42,$84,$C1,$30,$02,$48,$40,$34,$2F,$00,$0A,$84,$C1,$30,$02,$60,$30,$24,$01,$E2,$89,$E2,$88,$0C,$81,$00,$01,$00,$00,$64,$F4,$80,$C1,$02,$80,$00,$00,$FF,$FF,$22,$02,$C2,$C0,$48,$42,$C4,$C0,$48,$42,$4A,$42,$66,$0A,$D2,$82,$65,$06,$B2,$AF,$00,$08,$63,$02,$53,$80,$24,$1F,$4E,$75,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$4E,$75,$4E,$75,$00,$FF,$80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$4E,$75,$4E,$75
-		
-		
-		org 	$80750
+    incbin  "msu-drv.bin"        
+    
+    org 	$80750
 CustomPlaySound
-		tst.b 	(b_cd_audio).w				; is CD Audio enabled?
-		beq.s 	passthrough					; branch if not
-		
+    tst.b 	(b_cd_audio).w				; is CD Audio enabled?
+    beq.s 	passthrough					; branch if not
+    
 ready
-		tst.b 	MCD_STAT
-		bne.s 	ready 						; Wait for Driver ready to receive cmd
-		jsr 	find_track
-		rts 								; Return to regular game code
-		
+    tst.b 	MCD_STAT
+    bne.s 	ready 						; Wait for Driver ready to receive cmd
+    jsr 	find_track
+    rts 								; Return to regular game code
+    
 audio_init
-		jsr 	MSUDRV
-		nop
-		nop
-		nop
-		tst.b	d0							; if 0: no CD Hardware found
-		bne		audio_init_fail				; Return without setting CD enabled
-		sf		b_cd_audio					; Clear CD Audio enabled var
-		sf 		TrackToPlay					; Clear Last CD track played var
-		move.b 	#$FF,(b_cd_audio).w			; set CD enabled to RAM
-		move.w 	#($1500|255),MCD_CMD		; Set CD Volume to MAX
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		jmp 	ResumeAfterChecksumCheck
+    jsr 	MSUDRV
+    nop
+    nop
+    nop
+    
+    if PRODUCTION
+    tst.b	d0							; if 1: no CD Hardware found
+    bne		audio_init_fail				; Return without setting CD enabled
+    endif
+
+    sf		b_cd_audio					; Clear CD Audio enabled var
+    sf 		TrackToPlay					; Clear Last CD track played var
+    move.b 	#$FF,(b_cd_audio).w			; set CD enabled to RAM
+    move.w 	#($1500|255),MCD_CMD		; Set CD Volume to MAX
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    jmp 	ResumeAfterChecksumCheck
 audio_init_fail
-		jmp 	lockout
-		
+    jmp 	lockout
+    
 
 passthrough
-		jmp 	PlaySound					; jump back to original function
-		
+    jmp 	PlaySound					; jump back to original function
+        
 
 find_track
-		move.b 	(CurrentSoundID).w,d0		; get (CurrentSoundID) for compare
-		move.b 	d0,(TrackToPlay).w			; save last played Track
-		
-		cmp.b 	#$D1,d0
-		beq 	pause_fade_track			; TODO: maybe problematic in SoundTest Mode
-		
-		cmp.b 	#$81,d0
-		beq 	play_track_1
-		cmp.b 	#$82,d0
-		beq 	play_track_2
-		cmp.b 	#$83,d0
-		beq 	play_track_3
-		cmp.b 	#$84,d0
-		beq 	play_track_4
-		cmp.b 	#$86,d0
-		beq 	play_track_5
-		cmp.b 	#$87,d0
-		beq 	play_track_6
-		cmp.b 	#$93,d0
-		beq 	play_track_7
-		cmp.b 	#$94,d0
-		beq 	play_track_8
-		cmp.b 	#$88,d0
-		beq 	play_track_9
-		cmp.b 	#$8B,d0
-		beq 	play_track_10
-		cmp.b 	#$8C,d0
-		beq 	play_track_11
-		cmp.b 	#$8E,d0
-		beq 	play_track_12
-		cmp.b 	#$91,d0
-		beq 	play_track_13
-		cmp.b 	#$96,d0
-		beq 	play_track_14
-		cmp.b 	#$98,d0
-		beq 	play_track_15
-		cmp.b 	#$89,d0
-		beq 	play_track_16
-		cmp.b 	#$8A,d0
-		beq 	play_track_17
-		cmp.b 	#$90,d0
-		beq 	play_track_18
-		cmp.b 	#$99,d0
-		beq 	play_track_19
-		cmp.b 	#$9A,d0
-		beq 	play_track_20
-		cmp.b 	#$9B,d0
-		beq 	play_track_21
-		cmp.b 	#$9C,d0
-		beq 	play_track_22
-		cmp.b 	#$9D,d0
-		beq 	play_track_23
-		cmp.b 	#$9E,d0
-		beq 	play_track_24
-		cmp.b 	#$9F,d0
-		beq 	play_track_25
-		cmp.b 	#$D4,d0
-		beq 	play_track_26
-		cmp.b 	#$D2,d0
-		beq 	play_track_27
-		cmp.b 	#$D3,d0
-		beq 	play_track_28
-		cmp.b 	#$D5,d0
-		beq 	play_track_29
-		cmp.b 	#$D6,d0
-		beq 	play_track_30
-		cmp.b 	#$D7,d0
-		beq 	play_track_31
-		cmp.b 	#$D8,d0
-		beq 	play_track_32
-		cmp.b 	#$D9,d0
-		beq 	play_track_33
+    move.b 	(CurrentSoundID).w,d0		; get (CurrentSoundID) for compare
+    move.b 	d0,(TrackToPlay).w			; save last played Track
+    
+    cmp.b 	#$D1,d0
+    beq 	pause_fade_track			; TODO: maybe problematic in SoundTest Mode
+    
+    cmp.b 	#$81,d0
+    beq 	play_track_1
+    cmp.b 	#$82,d0
+    beq 	play_track_2
+    cmp.b 	#$83,d0
+    beq 	play_track_3
+    cmp.b 	#$84,d0
+    beq 	play_track_4
+    cmp.b 	#$86,d0
+    beq 	play_track_5
+    cmp.b 	#$87,d0
+    beq 	play_track_6
+    cmp.b 	#$93,d0
+    beq 	play_track_7
+    cmp.b 	#$94,d0
+    beq 	play_track_8
+    cmp.b 	#$88,d0
+    beq 	play_track_9
+    cmp.b 	#$8B,d0
+    beq 	play_track_10
+    cmp.b 	#$8C,d0
+    beq 	play_track_11
+    cmp.b 	#$8E,d0
+    beq 	play_track_12
+    cmp.b 	#$91,d0
+    beq 	play_track_13
+    cmp.b 	#$96,d0
+    beq 	play_track_14
+    cmp.b 	#$98,d0
+    beq 	play_track_15
+    cmp.b 	#$89,d0
+    beq 	play_track_16
+    cmp.b 	#$8A,d0
+    beq 	play_track_17
+    cmp.b 	#$90,d0
+    beq 	play_track_18
+    cmp.b 	#$99,d0
+    beq 	play_track_19
+    cmp.b 	#$9A,d0
+    beq 	play_track_20
+    cmp.b 	#$9B,d0
+    beq 	play_track_21
+    cmp.b 	#$9C,d0
+    beq 	play_track_22
+    cmp.b 	#$9D,d0
+    beq 	play_track_23
+    cmp.b 	#$9E,d0
+    beq 	play_track_24
+    cmp.b 	#$9F,d0
+    beq 	play_track_25
+    cmp.b 	#$D4,d0
+    beq 	play_track_26
+    cmp.b 	#$D2,d0
+    beq 	play_track_27
+    cmp.b 	#$D3,d0
+    beq 	play_track_28
+    cmp.b 	#$D5,d0
+    beq 	play_track_29
+    cmp.b 	#$D6,d0
+    beq 	play_track_30
+    cmp.b 	#$D7,d0
+    beq 	play_track_31
+    cmp.b 	#$D8,d0
+    beq 	play_track_32
+    cmp.b 	#$D9,d0
+    beq 	play_track_33
 break
-		rts
-		
+    rts
+    
 play_track_1								; Prologue
-		jsr 	mute_chipmusic
-		move.w 	#($1100|1),MCD_CMD 			; send cmd: play track #1, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|1),MCD_CMD 			; send cmd: play track #1, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_2								; Stage 1-1
-		jsr 	mute_chipmusic
-		move.w 	#($1200|2),MCD_CMD 			; send cmd: play track #2, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|2),MCD_CMD 			; send cmd: play track #2, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_3								; Substage
-		jsr 	mute_chipmusic
-		move.w 	#($1200|3),MCD_CMD 			; send cmd: play track #3, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|3),MCD_CMD 			; send cmd: play track #3, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_4								; Stage 1-2
-		jsr 	mute_chipmusic
-		move.w 	#($1200|4),MCD_CMD 			; send cmd: play track #4, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|4),MCD_CMD 			; send cmd: play track #4, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_5								; Stage 1-Rolling Apple
-		jsr 	mute_chipmusic
-		move.w 	#($1100|5),MCD_CMD 			; send cmd: play track #5, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|5),MCD_CMD 			; send cmd: play track #5, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_6								; Stage 2-1
-		jsr 	mute_chipmusic
-		move.w 	#($1200|6),MCD_CMD 			; send cmd: play track #6, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|6),MCD_CMD 			; send cmd: play track #6, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_7								; Stage 2-2 (Dash)
-		jsr 	mute_chipmusic
-		move.w 	#($1100|7),MCD_CMD 			; send cmd: play track #7, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|7),MCD_CMD 			; send cmd: play track #7, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_8								; Stage 2-1 (Intro Variant)
-		jsr 	mute_chipmusic
-		move.w 	#($1200|8),MCD_CMD 			; send cmd: play track #8, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|8),MCD_CMD 			; send cmd: play track #8, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_9								; Stage 2-3
-		jsr 	mute_chipmusic
-		move.w 	#($1200|9),MCD_CMD 			; send cmd: play track #9, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|9),MCD_CMD 			; send cmd: play track #9, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_10								; Stage 3-1
-		jsr 	mute_chipmusic
-		move.w 	#($1200|10),MCD_CMD 		; send cmd: play track #10, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|10),MCD_CMD 		; send cmd: play track #10, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_11								; Stage 3-2
-		jsr 	mute_chipmusic
-		move.w 	#($1200|11),MCD_CMD 		; send cmd: play track #11, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|11),MCD_CMD 		; send cmd: play track #11, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_12								; Stage 4-1
-		jsr		mute_chipmusic
-		move.w 	#($1200|12),MCD_CMD 		; send cmd: play track #12, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr		mute_chipmusic
+    move.w 	#($1200|12),MCD_CMD 		; send cmd: play track #12, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_13								; Stage 4-2
-		jsr 	mute_chipmusic
-		move.w 	#($1200|13),MCD_CMD 		; send cmd: play track #13, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|13),MCD_CMD 		; send cmd: play track #13, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_14								; Stage 5-1
-		jsr 	mute_chipmusic
-		move.w 	#($1200|14),MCD_CMD 		; send cmd: play track #14, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|14),MCD_CMD 		; send cmd: play track #14, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_15								; Stage 5-2
-		jsr 	mute_chipmusic
-		move.w 	#($1200|15),MCD_CMD 		; send cmd: play track #15, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|15),MCD_CMD 		; send cmd: play track #15, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_16								; Stage Clear
-		jsr 	mute_chipmusic
-		move.w 	#($1100|16),MCD_CMD 		; send cmd: play track #16, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		move.w 	(CurrentGM).w,d0			; get current game mode
-		cmp.b 	#$0A,d0						; $0A = Sound Test
-		beq 	track_16_soundtest_handler
-		dc.b 	$4E,$B8,$FF,$8A				; jump back
+    jsr 	mute_chipmusic
+    move.w 	#($1100|16),MCD_CMD 		; send cmd: play track #16, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    move.w 	(CurrentGM).w,d0			; get current game mode
+    cmp.b 	#$0A,d0						; $0A = Sound Test
+    beq 	track_16_soundtest_handler
+    dc.b 	$4E,$B8,$FF,$8A				; jump back
 track_16_soundtest_handler
-		rts
+    rts
 play_track_17								; Lost a Life
-		jsr 	mute_chipmusic
-		move.w 	#($1100|17),MCD_CMD 		; send cmd: play track #17, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|17),MCD_CMD 		; send cmd: play track #17, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_18								; Staff Roll
-		jsr 	mute_chipmusic
-		move.w 	#($1100|18),MCD_CMD 		; send cmd: play track #18, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|18),MCD_CMD 		; send cmd: play track #18, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_19								; Diamond
-		jsr 	mute_chipmusic
-		move.w 	#($1100|19),MCD_CMD 		; send cmd: play track #19, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|19),MCD_CMD 		; send cmd: play track #19, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_20								; Final Boss
-		jsr 	mute_chipmusic
-		move.w 	#($1200|20),MCD_CMD 		; send cmd: play track #20, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|20),MCD_CMD 		; send cmd: play track #20, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_21								; Ending
-		jsr 	mute_chipmusic
-		move.w 	#($1100|21),MCD_CMD 		; send cmd: play track #21, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|21),MCD_CMD 		; send cmd: play track #21, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_22								; Rainbow
-		jsr 	mute_chipmusic
-		move.w 	#($1100|22),MCD_CMD 		; send cmd: play track #22, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		move.w 	(CurrentGM).w,d0			; get current game mode
-		cmp.b 	#$0A,d0						; $0A = Sound Test
-		beq 	track_24_soundtest_handler
-		jmp 	$7B7AE;us					; jump back
+    jsr 	mute_chipmusic
+    move.w 	#($1100|22),MCD_CMD 		; send cmd: play track #22, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    move.w 	(CurrentGM).w,d0			; get current game mode
+    cmp.b 	#$0A,d0						; $0A = Sound Test
+    beq 	track_24_soundtest_handler
+    jmp 	$7B7AE;us					; jump back
 track_24_soundtest_handler
-		rts
-		
+    rts
+    
 play_track_23								; Game Over
-		jsr 	mute_chipmusic
-		move.w 	#($1100|23),MCD_CMD 		; send cmd: play track #23, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|23),MCD_CMD 		; send cmd: play track #23, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_24								; Castle
-		jsr 	mute_chipmusic
-		move.w 	(CurrentScene).w,d0			; get current game mode
-		move.w 	#($1100|24),MCD_CMD 		; send cmd: play track #24, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		cmp.b 	#$05,d0						; $05 = Castle Doors Scenes after the first Level (without Monk)
-		beq 	track_24_return
-		rts
+    jsr 	mute_chipmusic
+    move.w 	(CurrentScene).w,d0			; get current game mode
+    move.w 	#($1100|24),MCD_CMD 		; send cmd: play track #24, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    cmp.b 	#$05,d0						; $05 = Castle Doors Scenes after the first Level (without Monk)
+    beq 	track_24_return
+    rts
 track_24_return
-		;dc.b 	$4E,$B8,$FF,$8A				; jump back
-		jmp 	$7AD3E;us
+    ;dc.b 	$4E,$B8,$FF,$8A				; jump back
+    jmp 	$7AD3E;us
 play_track_25								; Boss Level 1
-		jsr 	mute_chipmusic
-		move.w 	#($1200|25),MCD_CMD 		; send cmd: play track #25, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|25),MCD_CMD 		; send cmd: play track #25, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_26								; SEEEGAAAA
-		jsr 	mute_chipmusic
-		move.w 	#($1100|26),MCD_CMD 		; send cmd: play track #26, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|26),MCD_CMD 		; send cmd: play track #26, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_27								; Title - Castle of Illusion (voice)
-		jsr 	mute_chipmusic
-		move.w 	#($1100|27),MCD_CMD 		; send cmd: play track #27, no loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1100|27),MCD_CMD 		; send cmd: play track #27, no loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_28								; BOSS - Level 2 - Jack in the Box
-		jsr 	mute_chipmusic
-		move.w 	#($1200|28),MCD_CMD 		; send cmd: play track #28, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|28),MCD_CMD 		; send cmd: play track #28, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_29								; BOSS - Level 4 - Candydragon
-		jsr 	mute_chipmusic
-		move.w 	#($1200|29),MCD_CMD 		; send cmd: play track #29, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|29),MCD_CMD 		; send cmd: play track #29, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_30								; BOSS - Level 3 - Aquamen
-		jsr 	mute_chipmusic
-		move.w 	#($1200|30),MCD_CMD 		; send cmd: play track #30, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|30),MCD_CMD 		; send cmd: play track #30, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_31								; BOSS - Level 5 - Hunchback
-		jsr 	mute_chipmusic
-		move.w 	#($1200|31),MCD_CMD 		; send cmd: play track #31, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|31),MCD_CMD 		; send cmd: play track #31, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_32								; Stage 5-2-1 Castle Underwater Passage
-		jsr 	mute_chipmusic
-		move.w 	#($1200|32),MCD_CMD 		; send cmd: play track #32, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|32),MCD_CMD 		; send cmd: play track #32, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 play_track_33								; Stage 3-3 Ruins Rising Water
-		jsr 	mute_chipmusic
-		move.w 	#($1200|33),MCD_CMD 		; send cmd: play track #33, loop
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    jsr 	mute_chipmusic
+    move.w 	#($1200|33),MCD_CMD 		; send cmd: play track #33, loop
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 
 
 pause_fade_track
-		move.w 	(CurrentGM).w,d0			; get current game mode
-		cmp.b 	#$0A,d0						; $0A = Sound Test
-		beq 	dontfade
-		move.w 	#($1300|150),MCD_CMD 		; send cmd: fade track 2sec
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    move.w 	(CurrentGM).w,d0			; get current game mode
+    cmp.b 	#$0A,d0						; $0A = Sound Test
+    beq 	dontfade
+    move.w 	#($1300|150),MCD_CMD 		; send cmd: fade track 2sec
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 dontfade
-		move.w 	#($1300|0),MCD_CMD 			; send cmd: pause track
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
-		
+    move.w 	#($1300|0),MCD_CMD 			; send cmd: pause track
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
+    
 pause_track
-		move.w 	#($1300|0),MCD_CMD 			; send cmd: pause track
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		rts
+    move.w 	#($1300|0),MCD_CMD 			; send cmd: pause track
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    rts
 
 pause_fade_track_24							; Castle Doors Music
-		move.w 	#($1300|100),MCD_CMD 		; send cmd: fade track 1,33sec
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
-		dc.b 	$4E,$B8,$FF,$8A				; jump back
-		rts
-		
+    move.w 	#($1300|100),MCD_CMD 		; send cmd: fade track 1,33sec
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    dc.b 	$4E,$B8,$FF,$8A				; jump back
+    rts
+    
 resume_track
-		move.w 	(CurrentGM).w,d0			; get current game mode
-		cmp.b 	#$0A,d0						; $0A = Sound Test
-		beq 	not_in_sound_test
-		move.w 	#$1400,MCD_CMD 				; send cmd: resume
-		addq.b 	#1,MCD_CMD_CK 				; Increment command clock
+    move.w 	(CurrentGM).w,d0			; get current game mode
+    cmp.b 	#$0A,d0						; $0A = Sound Test
+    beq 	not_in_sound_test
+    move.w 	#$1400,MCD_CMD 				; send cmd: resume
+    addq.b 	#1,MCD_CMD_CK 				; Increment command clock
 not_in_sound_test
-		rts
-		
+    rts
+        
 Level_Clear
-		move.b  #$89,(CurrentSoundID).w
-		clr.l 	d0
-		move.b 	(CurrentSoundID).w,d0
-		jsr 	CustomPlaySound
-		rts
+    move.b  #$89,(CurrentSoundID).w
+    clr.l 	d0
+    move.b 	(CurrentSoundID).w,d0
+    jsr 	CustomPlaySound
+    rts
 
 Game_Over
-		move.b  #$9D,(CurrentSoundID).w
-		clr.l 	d0
-		move.b 	(CurrentSoundID).w,d0
-		jsr 	CustomPlaySound
-		rts
+    move.b  #$9D,(CurrentSoundID).w
+    clr.l 	d0
+    move.b 	(CurrentSoundID).w,d0
+    jsr 	CustomPlaySound
+    rts
 
 
 mute_chipmusic
-		move.w 	(CurrentGM).w,d0			; get current game mode
-		cmp.b 	#$0A,d0						; $0A = Sound Test
-		beq 	jump_back_to_SoundTestLoop
-		move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
-		rts
+    move.w 	(CurrentGM).w,d0			; get current game mode
+    cmp.b 	#$0A,d0						; $0A = Sound Test
+    beq 	jump_back_to_SoundTestLoop
+    move.b  #$00,(CurrentSoundID).w		; Mute Chipmusic
+    rts
 
 jump_back_to_SoundTestLoop
-		move.b 	(CurrentSoundID).w,d0
-		jmp back_to_SoundTestLoop
+    move.b 	(CurrentSoundID).w,d0
+    jmp back_to_SoundTestLoop
 
 PauseGame
-		nop
-		nop
-		nop
-		tst.b   (EnablePauseFlag).w 		; Test if paused
-		bne.s   mute_while_paused
-		jsr 	resume_track
-		rts
+    nop
+    nop
+    nop
+    tst.b   (EnablePauseFlag).w 		; Test if paused
+    bne.s   mute_while_paused
+    jsr 	resume_track
+    rts
 mute_while_paused
-		jsr 	pause_track
-		rts
+    jsr 	pause_track
+    rts
 
 
-		org 	$90000
+    org 	$90000
 ENTRY_POINT
-		tst.w 	$00A10008  					; Test mystery reset (expansion port reset?)
-		bne Main          					; Branch if Not Equal (to zero) - to Main
-		tst.w 	$00A1000C  					; Test reset button
-		bne Main          					; Branch if Not Equal (to zero) - to Main
+    tst.w 	$00A10008  					; Test mystery reset (expansion port reset?)
+    bne Main          					; Branch if Not Equal (to zero) - to Main
+    tst.w 	$00A1000C  					; Test reset button
+    bne Main          					; Branch if Not Equal (to zero) - to Main
 Main
-		move.b 	$00A10001,d0      			; Move Megadrive hardware version to d0
-		andi.b 	#$0F,d0           			; The version is stored in last four bits, so mask it with 0F
-		beq 	Skip                  		; If version is equal to 0, skip TMSS signature
-		move.l 	#'SEGA',$00A14000 			; Move the string "SEGA" to 0xA14000
+    move.b 	$00A10001,d0      			; Move Megadrive hardware version to d0
+    andi.b 	#$0F,d0           			; The version is stored in last four bits, so mask it with 0F
+    beq 	Skip                  		; If version is equal to 0, skip TMSS signature
+    move.l 	#'SEGA',$00A14000 			; Move the string "SEGA" to 0xA14000
 Skip
-		btst 	#$6,(HW_version).l 			; Check for PAL or NTSC, 0=60Hz, 1=50Hz
-		bne 	jump_lockout				; branch if != 0
-		jmp 	Game
+    btst 	#$6,(HW_version).l 			; Check for PAL or NTSC, 0=60Hz, 1=50Hz
+    bne 	jump_lockout				; branch if != 0
+    jmp 	Game
 jump_lockout
-		jmp 	lockout
-		
-		
-		org 	$100000						; insert GFX and code for lockout screen
+    jmp 	lockout
+    
+    
+    org 	$100000						; insert GFX and code for lockout screen
 lockout
-		dc.b 	$48,$E7,$FF,$FE,$10,$39,$00,$A1,$00,$01,$02,$00,$00,$0F,$67,$00,$00,$0C,$23,$FC,$53,$45,$47,$41,$00,$A1,$40,$00,$4A,$B9,$00,$A1,$00,$08,$66,$00,$00,$96,$4A,$79,$00,$A1,$00,$0C,$66,$F4,$4B,$FA,$02,$96,$4C,$9D,$00,$E0,$4C,$DD,$1F,$00,$10,$29,$EF,$01,$02,$00,$00,$0F,$67,$08,$23,$7C,$53,$45,$47,$41,$2F,$00,$30,$14,$70,$00,$2C,$40,$4E,$66,$72,$17,$1A,$1D,$38,$85,$DA,$47,$51,$C9,$FF,$F8,$28,$BC,$40,$00,$00,$80,$36,$80,$32,$87,$34,$87,$01,$11,$66,$FC,$74,$27,$10,$DD,$51,$CA,$FF,$FC,$34,$80,$32,$80,$34,$87,$2D,$00,$51,$CE,$FF,$FC,$28,$BC,$81,$04,$8F,$02,$28,$BC,$C0,$00,$00,$00,$76,$1F,$26,$80,$51,$CB,$FF,$FC,$28,$BC,$40,$00,$00,$10,$78,$13,$26,$80,$51,$CC,$FF,$FC,$7A,$03,$17,$5D,$00,$11,$51,$CD,$FF,$FA,$34,$80,$4C,$D6,$7F,$FF,$46,$FC,$27,$00,$33,$FC,$81,$04,$00,$C0,$00,$04,$4D,$F9,$00,$FF,$10,$00,$23,$FC,$7C,$00,$00,$02,$00,$C0,$00,$04,$23,$FC,$00,$00,$00,$00,$00,$C0,$00,$00,$23,$FC,$40,$00,$00,$10,$00,$C0,$00,$04,$23,$FC,$00,$00,$00,$00,$00,$C0,$00,$00,$13,$FC,$00,$40,$00,$A1,$00,$09,$13,$FC,$00,$40,$00,$A1,$00,$0B,$13,$FC,$00,$40,$00,$A1,$00,$0D,$33,$FC,$8F,$02,$00,$C0,$00,$04,$61,$00,$00,$46,$61,$00,$00,$84,$61,$00,$00,$2A,$61,$00,$00,$58,$61,$00,$00,$EC,$61,$00,$00,$8E,$61,$00,$01,$40,$08,$00,$00,$07,$66,$0C,$20,$3C,$00,$00,$00,$06,$61,$00,$01,$7C,$60,$EA,$4E,$F9,$00,$10,$01,$32,$41,$F9,$00,$C0,$00,$04,$43,$FA,$01,$E6,$7E,$14,$30,$99,$51,$CF,$FF,$FC,$4E,$75,$20,$3C,$00,$00,$00,$00,$61,$00,$00,$EE,$2E,$3C,$00,$00,$7F,$FF,$33,$FC,$00,$00,$00,$C0,$00,$00,$51,$CF,$FF,$F6,$4E,$75,$20,$3C,$00,$00,$00,$00,$61,$00,$00,$D0,$41,$FA,$02,$5E,$2E,$3C,$00,$00,$04,$A1,$CE,$FC,$00,$10,$33,$D8,$00,$C0,$00,$00,$51,$CF,$FF,$F8,$4E,$75,$23,$FC,$C0,$00,$00,$00,$00,$C0,$00,$04,$7E,$3F,$70,$00,$33,$C0,$00,$C0,$00,$00,$51,$CF,$FF,$F8,$4E,$75,$7E,$03,$43,$FA,$01,$A0,$23,$FC,$C0,$00,$00,$00,$00,$C0,$00,$04,$41,$FA,$01,$9A,$7C,$0F,$72,$00,$30,$11,$74,$00,$32,$10,$82,$C0,$D4,$41,$02,$42,$0F,$00,$32,$10,$02,$41,$00,$F0,$82,$C0,$D4,$41,$02,$42,$0F,$F0,$32,$18,$02,$41,$00,$0F,$82,$C0,$D4,$41,$33,$C2,$00,$C0,$00,$00,$51,$CE,$FF,$D2,$70,$14,$61,$00,$00,$B6,$D3,$FC,$00,$00,$00,$02,$51,$CF,$FF,$B0,$4E,$75,$23,$FC,$40,$00,$00,$03,$00,$C0,$00,$04,$2E,$3C,$00,$00,$00,$20,$74,$00,$2C,$3C,$00,$00,$00,$27,$33,$C2,$00,$C0,$00,$00,$06,$82,$00,$00,$00,$01,$51,$CE,$FF,$F2,$2C,$3C,$00,$00,$00,$17,$33,$FC,$00,$00,$00,$C0,$00,$00,$51,$CE,$FF,$F6,$51,$CF,$FF,$D6,$4E,$75,$72,$00,$32,$00,$02,$41,$3F,$FF,$00,$41,$40,$00,$48,$41,$80,$FC,$40,$00,$82,$80,$23,$C1,$00,$C0,$00,$04,$4E,$75,$72,$00,$70,$00,$13,$FC,$00,$40,$00,$A1,$00,$09,$13,$FC,$00,$40,$00,$A1,$00,$03,$12,$39,$00,$A1,$00,$03,$46,$41,$02,$41,$00,$0F,$10,$39,$00,$A1,$00,$03,$46,$40,$02,$40,$00,$70,$82,$40,$13,$FC,$00,$00,$00,$A1,$00,$03,$10,$39,$00,$A1,$00,$03,$46,$40,$02,$40,$00,$70,$D0,$40,$D0,$40,$82,$40,$30,$01,$4E,$75,$22,$3C,$00,$00,$0F,$FF,$51,$C9,$FF,$FE,$51,$C8,$FF,$F4,$4E,$75,$80,$00,$3F,$FF,$01,$00,$00,$A0,$00,$00,$00,$A1,$11,$00,$00,$A1,$12,$00,$00,$C0,$00,$00,$00,$C0,$00,$04,$04,$14,$30,$2C,$07,$54,$00,$00,$00,$00,$00,$00,$81,$2B,$00,$01,$01,$00,$00,$FF,$FF,$00,$00,$80,$40,$00,$00,$80,$AF,$01,$D9,$1F,$11,$27,$00,$21,$26,$00,$F9,$77,$ED,$B0,$DD,$E1,$FD,$E1,$ED,$47,$ED,$4F,$D1,$E1,$F1,$08,$D9,$C1,$D1,$E1,$F1,$F9,$F3,$ED,$56,$36,$E9,$E9,$81,$04,$8F,$01,$C0,$00,$00,$00,$40,$00,$00,$10,$9F,$BF,$DF,$FF,$80,$04,$81,$44,$82,$30,$83,$00,$84,$07,$85,$7E,$86,$00,$87,$0F,$88,$00,$89,$00,$8A,$00,$8B,$03,$8C,$81,$8D,$2F,$8E,$00,$8F,$02,$90,$01,$91,$00,$92,$00,$00,$08,$00,$04,$00,$02,$00,$01,$00,$C0,$00,$80,$00,$60,$00,$40,$00,$20,$00,$0E,$00,$0A,$00,$08,$00,$06,$00,$04,$0C,$CC,$08,$88,$06,$66,$00,$C0,$02,$22,$00,$00,$80,$00,$3F,$FF,$01,$00,$00,$A0,$00,$00,$00,$A1,$11,$00,$00,$A1,$12,$00,$00,$C0,$00,$00,$00,$C0,$00,$04,$04,$14,$30,$2C,$07,$54,$FF,$FF,$FF,$00,$80,$80,$80,$00,$31,$31,$31,$00,$2F,$2F,$2F,$00,$26,$26,$26,$00,$00,$00,$00,$00,$00,$04,$04,$14,$30,$2C,$07,$54,$80,$00,$3F,$FF,$01,$00,$00,$A0,$00,$00,$00,$A1,$11,$00,$00,$A1,$12,$00,$00,$C0,$00,$00,$00,$C0,$00,$04,$04,$14,$30,$2C,$07,$54,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$CB,$BB,$BB,$BB,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BB,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$BB,$BB,$BB,$BC,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$7C,$CC,$EE,$E8,$5E,$EE,$CC,$96,$5C,$CC,$EE,$75,$5E,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$C7,$CC,$CC,$EE,$85,$EE,$EE,$C9,$65,$CC,$CC,$E7,$55,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$DD,$DD,$DC,$EE,$DD,$DD,$1E,$CC,$DD,$DD,$2C,$EE,$DD,$DD,$3E,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$C3,$22,$4C,$CC,$E1,$DD,$D1,$2E,$CD,$DD,$DD,$3C,$3D,$DD,$D1,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$C4,$CC,$CC,$CC,$4D,$13,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$E7,$CC,$CC,$CC,$95,$EE,$EE,$EE,$65,$CC,$CC,$C7,$55,$EE,$EE,$85,$55,$C8,$55,$5C,$CC,$95,$55,$5E,$EE,$65,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$E9,$CC,$CC,$CC,$C6,$EE,$EE,$EE,$75,$CC,$CC,$C9,$55,$EE,$EE,$E6,$55,$CC,$CC,$75,$55,$EE,$E8,$55,$55,$85,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$CC,$DD,$DD,$EC,$EE,$DD,$D1,$EE,$CC,$DD,$D1,$C4,$EE,$DD,$D2,$E2,$CC,$DD,$D3,$C2,$EE,$DD,$DE,$ED,$CC,$DD,$1C,$3D,$EE,$DD,$2E,$2D,$2D,$DD,$D3,$CC,$1D,$DD,$1E,$E3,$DD,$DD,$3C,$C1,$DD,$D1,$EE,$2D,$DD,$D3,$C4,$DD,$DD,$1E,$E1,$DD,$DD,$3C,$2D,$DD,$D1,$E4,$DD,$DD,$2D,$DD,$1E,$CC,$DD,$DD,$D2,$EE,$DD,$DD,$1C,$CC,$DD,$D1,$4E,$E3,$DD,$14,$CC,$3D,$DD,$4E,$E2,$DD,$D4,$CC,$2D,$DD,$4E,$42,$DD,$DD,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$2E,$EE,$EE,$EE,$D2,$CC,$CC,$CC,$DD,$3E,$EE,$EE,$DD,$D3,$CC,$CC,$DD,$D1,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$C9,$EE,$EE,$EE,$E6,$CC,$CC,$65,$55,$EE,$E7,$55,$55,$CC,$85,$55,$55,$E9,$65,$55,$55,$C7,$55,$55,$55,$85,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$E8,$CC,$CC,$CC,$95,$EE,$EE,$EE,$76,$CC,$C6,$55,$55,$EE,$75,$55,$55,$C8,$55,$55,$55,$96,$55,$55,$55,$75,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$66,$66,$55,$66,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$66,$66,$EE,$EE,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$11,$11,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$11,$11,$11,$11,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$11,$1D,$DD,$DE,$CC,$DD,$2C,$1D,$EE,$DD,$34,$DD,$CC,$DD,$C2,$DD,$EE,$D1,$E1,$D1,$CC,$D2,$4D,$D3,$EE,$D2,$3D,$1E,$CC,$D3,$2D,$32,$EE,$EE,$E3,$E1,$D3,$C1,$DD,$D3,$1E,$3D,$DD,$3E,$34,$1D,$D2,$C4,$E2,$DD,$2E,$4D,$3D,$D2,$C3,$DD,$1D,$14,$3D,$DD,$01,$42,$DD,$DD,$14,$2D,$DD,$2E,$C4,$1D,$DD,$DD,$41,$DD,$DD,$DD,$DD,$DD,$DD,$13,$DD,$DD,$D2,$EE,$DD,$D2,$4C,$42,$D1,$3E,$42,$DD,$3C,$31,$DD,$DD,$31,$DD,$DD,$DD,$DD,$24,$CC,$CC,$14,$EE,$43,$EE,$CC,$42,$D1,$CC,$42,$DD,$DD,$3E,$DD,$DD,$DD,$1C,$DD,$DD,$DD,$D3,$DD,$DD,$DD,$D2,$DD,$DD,$D2,$33,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$85,$EE,$EE,$E9,$55,$CC,$CC,$C6,$55,$EE,$EE,$75,$55,$CC,$C8,$55,$55,$EE,$E6,$55,$55,$CC,$75,$55,$55,$E8,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$5C,$AA,$55,$55,$5E,$AA,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$AA,$AA,$AA,$CC,$AA,$AA,$AA,$AE,$AA,$AA,$AA,$AC,$AA,$AA,$AA,$AE,$AA,$AA,$AA,$AC,$AA,$AE,$AA,$AA,$AA,$AC,$AA,$AA,$AA,$AE,$AA,$AA,$CC,$CC,$AA,$AA,$EE,$EA,$AA,$AA,$CC,$CA,$AA,$AA,$EE,$EA,$AA,$AA,$CC,$AA,$AA,$AA,$EE,$AA,$6A,$AA,$C7,$AA,$6A,$AA,$96,$AA,$6A,$AA,$AA,$A6,$66,$6A,$AA,$A6,$6A,$AA,$A6,$66,$6A,$AA,$A6,$56,$AA,$AA,$A6,$56,$AA,$AA,$A6,$56,$AA,$AA,$A6,$56,$6A,$AA,$A6,$55,$6A,$AA,$AA,$AA,$CA,$AC,$AA,$AA,$AA,$AE,$66,$6A,$AA,$AC,$65,$66,$EA,$AA,$66,$65,$CA,$AA,$AA,$66,$EE,$AA,$AA,$AA,$AC,$CC,$AA,$AA,$AA,$AE,$CC,$AA,$AA,$AA,$EE,$AA,$AA,$AA,$CC,$CC,$AA,$AA,$EE,$EE,$AA,$AA,$CC,$CC,$AA,$AA,$EE,$EE,$AA,$AA,$CC,$CC,$AA,$AA,$EE,$EE,$AA,$AA,$AA,$1A,$AA,$AA,$AA,$1A,$AA,$AA,$11,$11,$1A,$AA,$1D,$DD,$1A,$AA,$1D,$DD,$1A,$AA,$1D,$DD,$1A,$AA,$1D,$DD,$1A,$AA,$1D,$DD,$1A,$AA,$AA,$1D,$DD,$DC,$AA,$1D,$DD,$DE,$11,$1D,$DD,$DC,$1D,$DD,$DD,$DE,$1D,$DD,$DD,$DC,$1D,$DD,$DD,$DE,$1D,$DD,$DD,$DC,$1D,$DD,$DD,$DE,$CC,$CC,$CC,$C4,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$41,$DD,$14,$31,$E2,$13,$31,$DD,$CC,$41,$DD,$DD,$EE,$40,$12,$3E,$CC,$C4,$32,$21,$EE,$E2,$DD,$DD,$CC,$C4,$DD,$DD,$EE,$EE,$EE,$EE,$DD,$DD,$DD,$DD,$DD,$DD,$12,$34,$12,$34,$CC,$CC,$EE,$33,$21,$1D,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$EE,$EE,$EE,$EE,$12,$34,$CC,$CC,$EE,$EE,$EE,$E4,$43,$22,$11,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$4E,$EE,$EE,$EE,$1C,$CC,$CC,$CC,$1E,$EE,$EE,$EE,$DC,$CC,$CC,$CC,$DE,$EE,$EE,$EE,$DC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$C8,$EE,$EE,$EE,$95,$CC,$CC,$CC,$65,$EE,$EE,$E8,$55,$CC,$CC,$95,$55,$EE,$EE,$65,$55,$96,$55,$55,$55,$75,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$AA,$55,$55,$5E,$AA,$AA,$AC,$CA,$AA,$AA,$AE,$EA,$AA,$AA,$AC,$CA,$AA,$AA,$AE,$E9,$AA,$AA,$AC,$C7,$AA,$AA,$AE,$86,$AA,$AA,$AA,$A6,$6A,$AA,$AA,$A6,$6A,$AA,$A6,$6A,$AA,$AA,$A6,$6A,$AA,$AA,$A6,$6A,$AA,$AA,$66,$6A,$AA,$AA,$65,$6A,$AA,$AA,$66,$6A,$AA,$A6,$6A,$AA,$AA,$A6,$6A,$AA,$AA,$A6,$56,$66,$6A,$A6,$56,$AA,$66,$A6,$56,$AA,$A6,$A6,$56,$AA,$A6,$A6,$56,$AA,$AA,$A6,$66,$6A,$AA,$AA,$A6,$6A,$AA,$AA,$A6,$6A,$A6,$AA,$AA,$AA,$AA,$66,$AA,$AA,$AA,$56,$66,$AA,$AA,$65,$56,$EA,$AA,$66,$56,$CA,$AA,$A6,$66,$AA,$AA,$AA,$AA,$AA,$AC,$AA,$AA,$AA,$EE,$CC,$CC,$AA,$AA,$AE,$EE,$AA,$AA,$AC,$CC,$AA,$AA,$AE,$EE,$AA,$AA,$AC,$CC,$AA,$AA,$EE,$EE,$1A,$AA,$CC,$CC,$11,$AA,$EE,$EE,$D1,$1A,$1D,$DD,$1A,$AA,$1D,$DD,$1A,$AA,$1D,$DD,$1A,$AA,$1D,$DD,$1A,$AA,$11,$D1,$1A,$AA,$A1,$11,$AA,$A1,$AA,$AA,$AA,$11,$AA,$AA,$A1,$1D,$1D,$DD,$DD,$DC,$1D,$DD,$DD,$DE,$1D,$DD,$DD,$DC,$1D,$DD,$DD,$DE,$1D,$DD,$DD,$DC,$1D,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$42,$CC,$C4,$22,$22,$EE,$E3,$DD,$DD,$CC,$C2,$DD,$DD,$EE,$ED,$DD,$DD,$CC,$2D,$DD,$DD,$E3,$DD,$DD,$DD,$3D,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$22,$22,$22,$22,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$22,$22,$22,$22,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$2C,$CC,$CC,$CC,$DE,$EE,$EE,$EE,$DC,$CC,$CC,$CC,$DE,$EE,$EE,$EE,$1C,$CC,$CC,$CC,$2E,$EE,$EE,$EE,$3C,$CC,$CC,$CC,$4E,$EE,$EE,$EE,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$E9,$CC,$CC,$CC,$C7,$EE,$EE,$EE,$85,$CC,$C7,$55,$55,$EE,$86,$55,$55,$CC,$65,$55,$55,$E7,$55,$55,$55,$85,$55,$55,$55,$65,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$CC,$55,$55,$5E,$EE,$55,$55,$5C,$C8,$55,$55,$5E,$96,$55,$55,$5C,$75,$55,$55,$58,$55,$CC,$86,$66,$66,$E8,$55,$55,$55,$C6,$55,$55,$55,$75,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$66,$66,$66,$66,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$66,$66,$66,$66,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$66,$66,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$CC,$CC,$DD,$11,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$11,$11,$11,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$CC,$43,$32,$DD,$EE,$DD,$DD,$DD,$CC,$DD,$DD,$DD,$EE,$DD,$DD,$DD,$CC,$DD,$DD,$DD,$EE,$DD,$DD,$DD,$CC,$DD,$DD,$DD,$EE,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$D1,$DD,$DD,$DD,$D3,$DD,$DD,$DD,$D4,$DD,$DD,$DD,$2E,$DD,$DD,$DD,$4C,$DD,$DD,$D2,$EE,$DD,$DD,$D4,$CC,$DD,$DD,$3E,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$C9,$65,$EE,$EE,$E6,$55,$CC,$CC,$85,$55,$EE,$E9,$55,$55,$CC,$C6,$55,$55,$EE,$75,$55,$55,$C9,$55,$55,$55,$E6,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$56,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$CC,$DD,$DD,$DD,$EE,$DD,$DD,$DD,$CC,$DD,$DD,$DD,$EE,$DD,$DD,$DD,$CC,$DD,$DD,$DD,$EE,$DD,$DD,$DD,$CC,$DD,$DD,$DD,$EE,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$D1,$DD,$DD,$DD,$24,$DD,$DD,$D3,$CC,$DD,$D2,$EE,$EE,$DD,$D2,$CC,$CC,$DD,$1E,$EE,$EE,$D1,$4C,$CC,$CC,$14,$EE,$EE,$EE,$4C,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$E8,$CC,$CC,$CC,$C6,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$75,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$55,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$55,$55,$CC,$CC,$55,$55,$EE,$EE,$55,$55,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$DD,$DD,$EE,$EE,$DD,$DD,$CC,$CC,$DD,$DD,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$DD,$DD,$DD,$DC,$DD,$DD,$DD,$DE,$DD,$DD,$DD,$DC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$DD,$DD,$DD,$EE,$DD,$DD,$DD,$CC,$DD,$DD,$DD,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$DD,$DD,$DD,$DD,$DD,$DD,$DD,$12,$DD,$12,$34,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$D2,$4C,$CC,$CC,$4E,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FC,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$BE,$EE,$EE,$EE,$BC,$CC,$CC,$CC,$CB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$EE,$EE,$EE,$EE,$CC,$CC,$CC,$CC,$BB,$BB,$BB,$BB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$EE,$EE,$EE,$EB,$CC,$CC,$CC,$CB,$BB,$BB,$BB,$BC,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$CC,$CC,$CC,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FB,$FF,$FF,$FF,$BB,$FF,$FF,$FF,$BB,$FF,$FF,$FF,$BB,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$BF,$FF,$FF,$FF,$BF,$FF,$FF,$FF,$BB,$BB,$BF,$FF,$BB,$FF,$BF,$FB,$BF,$FF,$FF,$BB,$FF,$BB,$FF,$BB,$FF,$BB,$BF,$BB,$FF,$FF,$BB,$BB,$FF,$FF,$BB,$FB,$BF,$BB,$BF,$FF,$BB,$BB,$FF,$BB,$BB,$FB,$BF,$FB,$BF,$FF,$BB,$FB,$BF,$FF,$BB,$FB,$BF,$FF,$BB,$FB,$BF,$FF,$BB,$FB,$BF,$FF,$BF,$FB,$BF,$BB,$FF,$FF,$BB,$FF,$BB,$BB,$BB,$FF,$FB,$FF,$BB,$FF,$FB,$FF,$BB,$FF,$FB,$FF,$BF,$FF,$FB,$FF,$BF,$FF,$FB,$FF,$BF,$FF,$BF,$FF,$BF,$BB,$FF,$FB,$BB,$FF,$FB,$BB,$BB,$BF,$FF,$BF,$FB,$BB,$FF,$BF,$FB,$BB,$BF,$BF,$FB,$FB,$BB,$BF,$FB,$FF,$BB,$BF,$FB,$FF,$BB,$BF,$FB,$FF,$FB,$BF,$BB,$BB,$BB,$FF,$FF,$BF,$FB,$BF,$FF,$BF,$FF,$BB,$FF,$BF,$FF,$BB,$FF,$BF,$FF,$BB,$FF,$BF,$FF,$BB,$FF,$BF,$FB,$BF,$FF,$BB,$BB,$FF,$FF,$FB,$BB,$BB,$BF,$FF,$BB,$FF,$BB,$FF,$BB,$FF,$FB,$FF,$BB,$FF,$FB,$FF,$BB,$FF,$FB,$FF,$BB,$FF,$FB,$FF,$BB,$FF,$BB,$FB,$BB,$BB,$BF,$FB,$BB,$BB,$BF,$FF,$BB,$FF,$BB,$BF,$BB,$FF,$BB,$BF,$BB,$FF,$BF,$BF,$BB,$BB,$BF,$BF,$BB,$FB,$BF,$FF,$BB,$FF,$BB,$FB,$BB,$BF,$FB,$BB,$BB,$BB,$BB,$FB,$BF,$FB,$BF,$FB,$BF,$FB,$BF,$FB,$BF,$FF,$BB,$FB,$BF,$FF,$BB,$FB,$BF,$FF,$BB,$FB,$BF,$FF,$FB,$BB,$BB,$FF,$FB,$FB,$BB,$BB,$BB,$FF,$BF,$FB,$BF,$FF,$BF,$FB,$BF,$FB,$FF,$FB,$BB,$FB,$FF,$FB,$BF,$BF,$FF,$FB,$BF,$BF,$FF,$FB,$BF,$BF,$FF,$BB,$BB,$BB,$BB,$BB,$BB,$FF,$FF,$BB,$FF,$FB,$FF,$BB,$FF,$BB,$FF,$BB,$FF,$FB,$FF,$BB,$BB,$FF,$FF,$BB,$FB,$FF,$BF,$BB,$FF,$BB,$BB,$BB,$BF,$BF,$FF,$FF,$FF,$BB,$FF,$FF,$FF,$BB,$FF,$FF,$FF,$BF,$FF,$FF,$FF,$BF,$FF,$FF,$FF,$BF,$FF,$FF,$FF,$BB,$FF,$FF,$FF,$FB,$BF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$AA,$FF,$FF,$FA,$FF,$AF,$FF,$FA,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AA,$AA,$FF,$FA,$FF,$FF,$AF,$FA,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AF,$FF,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FF,$FA,$AF,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AA,$AA,$AF,$FA,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FA,$FF,$FA,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$AA,$FF,$FF,$AA,$FA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AF,$AA,$FF,$AF,$AA,$FA,$FA,$FF,$AF,$FA,$FA,$FF,$FF,$FA,$FA,$FF,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FA,$AA,$AA,$AF,$FA,$FF,$FF,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$FA,$AF,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FA,$AA,$AA,$AF,$FA,$FF,$FF,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AA,$AA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AF,$FF,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$FA,$AF,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FA,$AA,$AA,$AF,$FA,$FF,$FF,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FF,$FA,$AF,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$AA,$FF,$FF,$AA,$FA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AA,$AF,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$FA,$FF,$AA,$FF,$AF,$FF,$AF,$AF,$AF,$FA,$FF,$AF,$AF,$FA,$FF,$FA,$AF,$FA,$FF,$FA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$AA,$FF,$FF,$FA,$FF,$AF,$FF,$FA,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FF,$AA,$AF,$FF,$FF,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FF,$AF,$FF,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FF,$FA,$AF,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$AF,$FA,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FA,$FF,$FA,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FF,$FA,$AF,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AF,$FF,$FF,$FA,$AA,$AF,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FA,$AA,$AA,$AF,$FA,$FF,$FF,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AF,$AA,$FF,$AF,$AA,$FA,$FA,$FF,$AF,$FA,$FA,$FF,$FF,$FA,$FA,$FF,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$AA,$FF,$FF,$AA,$FA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AA,$AF,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AF,$FF,$AA,$AA,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FF,$AF,$FF,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AA,$AF,$FF,$FF,$AF,$FA,$FF,$FF,$AF,$FF,$AF,$FA,$FF,$FF,$AF,$FA,$FF,$FF,$AF,$FA,$AA,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AA,$AA,$FF,$FA,$FF,$FF,$AF,$FA,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$AA,$FF,$FF,$AA,$FA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$FA,$AF,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$AF,$FF,$AA,$AA,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FF,$AF,$AF,$FA,$FF,$AF,$AF,$AA,$FF,$AF,$FA,$AF,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FA,$FF,$FA,$FF,$AA,$FF,$FF,$AA,$FA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$FA,$AF,$FF,$FF,$AF,$FA,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FA,$AA,$FF,$FF,$AF,$FF,$AF,$FA,$AA,$AA,$AF,$FA,$FF,$FF,$FF,$FF,$AA,$AA,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    incbin  "msuLockout.bin"

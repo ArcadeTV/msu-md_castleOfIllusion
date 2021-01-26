@@ -14,6 +14,9 @@ Are you using the latest patch and soundPack?
 Are you playing on an emulator or real hardware?
 Please type the name and version here. (e.g. RetroArch GenesisPlusGX 58758ae or MegaEDpro OS 4.08)
 
+**Is the behaviour you are about to report present in the unpatched ROM?**
+I've tested the unpatched ROM and my result is: yes / no
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
