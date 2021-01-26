@@ -13,7 +13,7 @@ Report any issues [here](https://github.com/ArcadeTV/msu-md_castleOfIllusion/iss
 |__|__|_| |___|__,|___|___| |_|  \___/ 
                              
 
-Title:         Castle of illusion - MSU MD Version
+Title:         Castle of Illusion - MSU MD Version
 System:        SEGA GENESIS / MEGA DRIVE (JP, US) [60Hz]
                
 
@@ -27,7 +27,7 @@ Compatibility  Works on real hardware with
                (*untested on my end)
 
 SourceROMs:    JAP VERSION (CRC: CE8333C6) Castle of Illusion - Fushigi no Oshiro Daibouken (Japan).md
-               USA VERSION (CRC: BA4E9FD0) Castle of Illusion Starring Mickey Mouse (USA, Europe)
+               USA VERSION (CRC: BA4E9FD0) Castle of Illusion Starring Mickey Mouse (USA, Europe).md
 
 Date:          2020-09-07
 
