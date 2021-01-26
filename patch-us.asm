@@ -169,9 +169,9 @@ GM_SegaLoop
     org		$9F66;us						; GM_SoundTestLoop
     jsr 	CustomPlaySound					; Overwrite jmp to PlaySound
     
-    if CHEAT
     org 	$9F6C;us
 back_to_SoundTestLoop
+    if CHEAT
     nop										; enable Stage Selection <---------------------------- CHEAT
     endif
 
