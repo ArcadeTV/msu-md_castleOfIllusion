@@ -70,6 +70,9 @@ MCD_CMD_CK 		EQU $A1201F
     org $4
     dc.l 	$90000							; custom entry point for redirecting
     
+    org	    $100
+	dc.b	"SEGA MEGASD     "              ; For MegaSD compatibility
+    
     org 	$1A4							; ROM_END
     dc.l 	$002FFFFF						; Overwrite with 8 MBIT size
     
