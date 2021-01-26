@@ -1,1 +1,1 @@
-srecpatch.exe roms/MICKEY_JP_UNTOUCHED_16M.BIN OUTPUT/CastleOfIllusion-MsuMD-JP.md<srecfile-jp.txt
+..\srecpatch.exe "ROMS\MICKEY_JP_UNTOUCHED_16M.BIN" OUTPUT\out-jp.md<srecfile.txt

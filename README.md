@@ -1,40 +1,56 @@
-# MSU-MD: CASTLE OF ILLUSION
-Romhack for Sega Genesis/Mega Drive that adds CD audio to the game by using krikzz' MSU-MD driver
+# msu-md_castleOfIllusion
 
-### Thanks and credits:
+Please see the [Changelog](https://github.com/ArcadeTV/msu-md_castleOfIllusion/blob/master/Changelog.md)
 
-* [Dustin M. O'Dell](https://twitter.com/32mbit) who introduced me to s-record-patching, vasm and his asm for krikzz' msu-md-driver.
-* [Krikzz](https://twitter.com/krikzz) for producing the [Mega Everdrive pro](https://krikzz.com/store/home/59-mega-everdrive-pro.html) and made his msu-md-driver [freely available](https://github.com/krikzz/msu-md).
-* evilhamwizard for his valuable [notes](https://forums.sonicretro.org/index.php?threads/castle-of-illusion-j-crap.34919/) and [disassembly](https://www.mediafire.com/download/9f63iw0otlfsu26/castle+of+illusion+disassembly+11-2-2015.7z).
+For help topics please see this [wiki](https://github.com/ArcadeTV/msu-md_castleOfIllusion/wiki)
 
+Report any issues [here](https://github.com/ArcadeTV/msu-md_castleOfIllusion/issues)
 
-### Compatibility Goals
-The final release of this patch shall keep compatibility on real hardware intact, either via Mega Everdrive pro or via cart/CD combo. 
-Since the only Emulator I found this working on was [Kega Fusion](https://www.carpeludum.com/kega-fusion/) 3.64*, I'm only targeting real hardware.
+```
+ _____               _     _____ _____ 
+|  _  |___ ___ ___ _| |___|_   _|  |  |
+|     |  _|  _| .'| . | -_| | | |  |  |
+|__|__|_| |___|__,|___|___| |_|  \___/ 
+                             
 
-*If the option "CartBootEnabled=1" is present in fusion.ini, load rom first, then cue.
+Title:         Castle of illusion - MSU MD Version
+System:        SEGA GENESIS / MEGA DRIVE (JP, US) [60Hz]
+               
 
+Compatibility  Works on real hardware with 
+               MEGA Everdrive Pro, 
+               MegaSD* or 
+               Cart/CD combo*
+               mister*
+               GenesisPlusGX
+               Kega Fusion is not working due to an issue with broken DMA when CD support is active in emulation
+               (*untested on my end)
 
-### Build Requirements
+SourceROMs:    JAP VERSION (CRC: CE8333C6) Castle of Illusion - Fushigi no Oshiro Daibouken (Japan).md
+               USA VERSION (CRC: BA4E9FD0) Castle of Illusion Starring Mickey Mouse (USA, Europe)
 
-I'm on Win10/64, so I can't tell you how to set things up for other OS'es.
+Date:          2020-09-07
 
-* JAP version of the game rom (CRC:CE8333C6) padded to 16MBIT/2048Bytes/2MByte (typical name is Castle of Illusion - Fushigi no Oshiro Daibouken (Japan).md)
-* [VASM](http://sun.hasenbraten.de/vasm/) ([vasmm68k_mot_win32.exe](http://www.alphatron.co.uk/vasm/)) <- Win-compiled by Rob
-* [supertails66](https://github.com/suppertails66) [yuitools](https://github.com/suppertails66/yuitools) [srecpatch.exe](https://github.com/suppertails66/yuitools/blob/master/new_tools/srecpatch.exe)
+Category:      Romhack / Music
+Thanks:        evilhamwizard for his valuable notes and disassembly (see notes.md),
+               Dustin O'Dell (asm tutor), Krikzz (everdrive creator), Conn (mental coach)
 
-Please see the wiki for further information
-https://github.com/ArcadeTV/msu-md_castleOfIllusion/wiki
+Soundpacks:    Arranged OST by Grant Kirkhope (2013 Castle of Illusion Remake OST):  
+               >> http://www.mediafire.com/file/b5osyvjqf155kxn/CastleOfIllusion-MsuMD_SoundPack.zip/file
+               
+Source:        https://github.com/ArcadeTV/msu-md_castleOfIllusion
 
+Driver Source: https://github.com/krikzz/msu-md
 
-### Patching
+#############################################################################################################################
 
-Use the BPS patch file from the current release to patch your ROM.
-I recommend [FLIPS](https://dl.smwcentral.net/11474/floating.zip). Please see the wiki page for a guide on patching.
+### HOW TO USE
 
-### Cheats
-
-For the purpose of testing until the first release I enabled some cheats:
-* Unlimited Energy
-* Stage Selection from the Sound Test menu
-* Easy-kill bosses 1 & 2
+1. Obtain source ROM.
+2. Use the BPS patch file from the current release to patch your ROM. I recommend FLIPS. 
+   -> https://dl.smwcentral.net/11474/floating.zip
+3. Download the SoundPacks and make sure the rom and cue files have identical base-filenames (eg. game.md and game.cue)
+4. Make sure all files are in the same folder
+5. If using an emulator, make sure you are using the correct CD bios files!
+6. Report any issues here: https://github.com/ArcadeTV/msu-md_castleOfIllusion/issues
+```   
